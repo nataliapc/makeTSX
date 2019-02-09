@@ -10,6 +10,7 @@
 #include "TZX.h"
 #include "TZX_Blocks.h"
 #include "WAV.h"
+#include "BlockRipper.h"
 #include "rippers/MSX4B_Ripper.h"
 
 
@@ -26,7 +27,7 @@ bool tsxinfo = false;
 bool tsxdump = false;
 bool tsxhexchr = false;
 bool wavnomalize = false;
-bool wavenvelop = false;
+bool wavenvelop = true;
 bool wavthreshold = false;
 
 
@@ -60,7 +61,7 @@ int main(int argc, const char* argv[])
 			tsxmode = true;
 			tsxhexchr = true;
 		} else
-		if (!strcasecmp(argv[i], "-n")) {
+/*		if (!strcasecmp(argv[i], "-n")) {
 			wavmode = true;
 			wavnomalize = true;
 		} else
@@ -71,6 +72,18 @@ int main(int argc, const char* argv[])
 		if (!strcasecmp(argv[i], "-t")) {
 			wavmode = true;
 			wavthreshold = true;
+		} else
+*/		if (!strcasecmp(argv[i], "-v")) {
+			wavmode = true;
+			BlockRipper::setVerboseMode(true);
+		} else
+		if (!strcasecmp(argv[i], "-di")) {
+			wavmode = true;
+			BlockRipper::setInteractiveMode(false);
+		} else
+		if (!strcasecmp(argv[i], "-dp")) {
+			wavmode = true;
+			BlockRipper::setPredictiveMode(false);
 		} else
 		if (!strcasecmp(argv[i], "-wav")) {
 			wavmode = true;
@@ -143,7 +156,9 @@ void showUsage() {
 //	cout << "\033[0;32m";
 	cout << "SwitchesWAV:" << endl;
 //	cout << "\e[0m";
-	cout << "       none in current version" << endl;
+	cout << "       -v   Verbose mode." << endl;
+	cout << "       -di  Disable interactive mode." << endl;
+	cout << "       -dp  Disable predictive bits forward (don't use stop bits to predict)." << endl;
 //	cout << "       -n   Normalize WAV input." << endl;
 //	cout << "       -e   Envelope correction." << endl;
 //	cout << "       -t   Threshold factor." << endl;
@@ -228,29 +243,41 @@ void doWavMode()
 	WAV *wav = new WAV(wavfile);
 	bool msxload = false;
 
-	//Add 1st block with text info about this ripper
-	tsx->addBlock(new Block30(MAKETSX_TEXTBLOCK));
-	//Add the default Archive block for this tape
-	tsx->addBlock(addArchiveBlock());
-
+	//Check Input WAV file
 	if (!wav || !wav->getSize()) {
 		cout << getError() << " Error loading WAV file..." << endl << endl;
 		exit(1);
 	}
 	wav->showInfo();
+	if (wav->header->fmtSize!=16 ||
+		wav->header->wFormatTag!=1 ||
+		wav->header->nChannels!=1 ||
+		(wav->header->wBitsPerSample!=8 && wav->header->wBitsPerSample!=16)) {
+		cout << endl << getError() << " WAV file must be in PCM/Mono and 8/16bits mode..." << endl << endl;
+		exit(1);
+	}
 	cout << endl;
 	
+	//Add 1st block with text info about this ripper
+	tsx->addBlock(new Block30(MAKETSX_TEXTBLOCK));
+	//Add the default Archive block for this tape
+	tsx->addBlock(addArchiveBlock());
+
 	//Normalize signal
-	cout << "Normalize signal..." << endl;
-	wav->normalize();
+	if (wavnomalize) {
+		cout << "Normalize signal..." << endl;
+		wav->normalize();
+	}
 
 	//Envelop correction
-	cout << "Envelop correction..." << endl;
-	wav->envelopeCorrection();
+	if (wavenvelop) {
+		cout << "Envelop correction..." << endl;
+		wav->envelopeCorrection();
+	}
 
 	//Ripppers
 	MSX4B_Ripper *msx4b = new MSX4B_Ripper(wav);
-	cout << "Detecting pulses..." << endl << endl;
+	cout << "Detecting pulse lengths..." << endl << endl;
 
 	cout << ">>------------------- START RIPPING ---------------------" << endl;
 	cout << ">>------------------- START DETECTING BLOCK" << endl;

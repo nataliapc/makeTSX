@@ -73,13 +73,13 @@ void WAV::showInfo()
 	cout << "RiffSize:     " << header->riffSize << endl;
 	cout << "WaveId:       " << wave << endl;
 	cout << "FmtId:        " << fmt << endl;
-	cout << "FmtSize:      " << header->fmtSize << endl;
+	cout << "FmtSize:      " << header->fmtSize << " bytes" << endl;
 	cout << "FmtTag:       " << header->wFormatTag << endl;
-	cout << "Channels:     " << header->nChannels << endl;
-	cout << "SamplesxSec:  " << header->nSamplesPerSec << endl;
+	cout << "Channels:     " << (header->nChannels==1 ? "mono" : (header->nChannels==2 ? "stereo" : ""+header->nChannels)) << endl;
+	cout << "SamplesxSec:  " << header->nSamplesPerSec << " Hz" << endl;
 	cout << "AvgBytesxSec: " << header->nAvgBytesPerSec << endl;
 	cout << "BlockAlign:   " << header->nBlockAlign << endl;
-	cout << "BitsxSample:  " << header->wBitsPerSample << endl;
+	cout << "BitsxSample:  " << header->wBitsPerSample << " bits" << endl;
 	cout << "DATA Size:    " << size << endl;
 /*	cout << "     AvgHigh: " << avgHigh << endl;
 	cout << "     AvgZero: " << avgZero << endl;
@@ -111,11 +111,24 @@ bool WAV::loadFromFile(string filename)
 		return false;
 	}
 
-	//Read Data
-	size = header->dataSize;
-	data = new int8_t[size];
-	if (data==NULL) throw std::runtime_error("Out of memory allocation WAV data...");
-	ifs.read((char *)data, size);
+	//Read Data if 8 bits
+	if (header->wBitsPerSample == 8) {
+		size = header->dataSize;
+		data = new int8_t[size];
+		if (data==NULL) throw std::runtime_error("Out of memory allocation WAV data...");
+		ifs.read((char *)data, size);
+	} else
+	//Read Data if 16 bits
+	if (header->wBitsPerSample == 16) {
+		int16_t value16;
+		size = header->dataSize / 2;
+		data = new int8_t[size];
+		if (data==NULL) throw std::runtime_error("Out of memory allocation WAV data...");
+		for (size_t i=0; i<size; i++) {
+			ifs.read((char *)&value16, sizeof(int16_t));
+			data[i] = (value16/256 - 0x80) & 0xFF;
+		}
+	}
 
 	if (phase) {
 		for (uint32_t i=0; i<size; i++) {

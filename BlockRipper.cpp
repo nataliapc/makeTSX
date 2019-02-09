@@ -11,6 +11,9 @@ using namespace WAV_Class;
 
 
 size_t BlockRipper::pos = 0;
+bool   BlockRipper::verboseMode = false;
+bool   BlockRipper::interactiveMode = true;
+bool   BlockRipper::predictiveMode = true;
 
 
 BlockRipper::BlockRipper(WAV *wav)
@@ -39,6 +42,21 @@ BlockRipper::~BlockRipper()
 {
 	this->header = NULL;
 	this->data = NULL;
+}
+
+void BlockRipper::setVerboseMode(bool mode)
+{
+	verboseMode = mode;
+}
+
+void BlockRipper::setInteractiveMode(bool mode)
+{
+	interactiveMode = mode;
+}
+
+void BlockRipper::setPredictiveMode(bool mode)
+{
+	predictiveMode = mode;
 }
 
 void BlockRipper::initializeStatesVector()
@@ -111,6 +129,11 @@ DWORD BlockRipper::getPos()
 void BlockRipper::incPos()
 {
 	if (!eof()) pos++;
+}
+
+DWORD BlockRipper::getSize()
+{
+	return states.size();
 }
 
 bool BlockRipper::eof()

@@ -42,14 +42,17 @@ namespace Rippers {
 		MSX4B_Ripper(const MSX4B_Ripper& other);
 		~MSX4B_Ripper();
 		bool detectBlock();
-		
 	protected:
-		bool checkPulseWidth(DWORD pulseWidth, WORD pulses, DWORD bauds);
+		bool checkPulseWidth(DWORD pulseWidth, WORD pulses, DWORD bauds, bool first);
 		bool checkHeader(DWORD posIni);
+		bool predictiveBitsForward(DWORD posIni, BYTE currentBit, bool bitChoice, bool useStartBit);
 		DWORD checkBit0(DWORD posIni);
 		DWORD checkBit1(DWORD posIni);
 		WORD getByte();
+	private:
+		BYTE askUserForBitValue(DWORD posIni);
 
+	protected:
 		const static DWORD THRESHOLD_HEADER = 1000;
 
 		struct BlockInfo {

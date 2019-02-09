@@ -19,7 +19,7 @@ namespace WAV_Class {
 
 	#define Z80HZ			((uint32_t)3500000)		// ZX Standard 3.5 Mhz
 	#define WAVSampleRate	(header->nSamplesPerSec)
-	#define WAVTIME(pos)	"[" << ((float)samples[pos]/WAVSampleRate) << "s] "
+	#define WAVTIME(pos)	"[" << ((float)samples[std::min((DWORD)pos, (DWORD)(samples.size()-1))]/WAVSampleRate) << "s] "
 
 
 	class BlockRipper
@@ -41,7 +41,12 @@ namespace WAV_Class {
 		Block*	getDetectedBlock();
 		DWORD	getPos();
 		void	incPos();
+		DWORD	getSize();
 		bool	eof();
+
+		static	void setVerboseMode(bool mode);
+		static	void setInteractiveMode(bool mode);
+		static	void setPredictiveMode(bool mode);
 
 	protected:
 		const static DWORD THRESHOLD_SILENCE = 100;
@@ -50,7 +55,11 @@ namespace WAV_Class {
 		WAV::Header *header;			//Pointer to the WAV header
 		vector<DWORD> states;			//Vector with state change positions
 		vector<DWORD> samples;			//Vector with samples from beginning
+
 		static size_t pos;				//Index with the current data byte in vector states
+		static bool	  verboseMode;		//Flag for Verbose mode
+		static bool	  interactiveMode;	//Flag for Interactive mode
+		static bool	  predictiveMode;	//Flag for Predictive bits Forward mode
 
 	private:
 		int8_t *data;					//Pointer to the WAV data

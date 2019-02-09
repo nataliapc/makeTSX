@@ -35,12 +35,6 @@ namespace WAV_Class
 		void normalize();
 		void envelopeCorrection();
 
-	protected:
-		const char* MAGIC_RIFFID = "RIFF";
-		const char* MAGIC_WAVEID = "WAVE";
-		const char* MAGIC_FMTID  = "fmt ";
-		const char* MAGIC_DATAID = "data";
-
 		struct Header {
 			BYTE	riffId[4];			// "RIFF"
 			DWORD	riffSize;			// Size of chunk
@@ -58,6 +52,13 @@ namespace WAV_Class
 		};
 
 		Header *header;
+
+	protected:
+		const char* MAGIC_RIFFID = "RIFF";
+		const char* MAGIC_WAVEID = "WAVE";
+		const char* MAGIC_FMTID  = "fmt ";
+		const char* MAGIC_DATAID = "data";
+
 		int8_t *data;
 		size_t size;
 
