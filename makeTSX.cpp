@@ -24,6 +24,7 @@ string wavfile;
 bool tsxmode = false, wavmode = false;
 bool tsxinfo = false;
 bool tsxdump = false;
+bool tsxhexchr = false;
 bool wavnomalize = false;
 bool wavenvelop = false;
 bool wavthreshold = false;
@@ -54,6 +55,10 @@ int main(int argc, const char* argv[])
 		if (!strcasecmp(argv[i], "-d")) {
 			tsxmode = true;
 			tsxdump = true;
+		} else
+		if (!strcasecmp(argv[i], "-c")) {
+			tsxmode = true;
+			tsxhexchr = true;
 		} else
 		if (!strcasecmp(argv[i], "-n")) {
 			wavmode = true;
@@ -146,7 +151,8 @@ void showUsage() {
 	cout << "SwitchesTSX:" << endl;
 //	cout << "\e[0m";
 	cout << "       -i   Show TSX/TZX verbose blocks info." << endl;
-	cout << "       -d   Dump TSX/TZX blocks hexadecimal data." << endl;
+	cout << "       -d   Dump TSX/TZX data blocks in hexadecimal format." << endl;
+	cout << "       -c   Dump TSX/TZX data blocks in hex-char format." << endl;
 	cout << endl;
 }
 
@@ -173,15 +179,44 @@ void doTsxMode()
 		tsx->showInfo();
 		cout << endl;
 	}
+	if (tsxhexchr) {
+//		cout << "\033[0;32m";
+		cout << "TSX/TZX Blocks Hex-Char dump" << endl;
+		cout << "============================" << endl;
+//		cout << "\e[0m";
+		tsx->hexCharDump();
+		cout << endl;
+	}
 	if (tsxdump) {
 //		cout << "\033[0;32m";
 		cout << "TSX/TZX Blocks dump" << endl;
 		cout << "====================" << endl;
 //		cout << "\e[0m";
-		tsx->dump();
+		tsx->hexDump();
 		cout << endl;
 	}
 	exit(0);
+}
+
+
+/**
+ * @brief 
+ */
+Block32* addArchiveBlock()
+{
+	BYTE ids[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
+	string txt[] = {
+		"[Full title]",
+		"[Software house/publicher]",
+		"[Autor(s)]",
+		"[Year of publication]",
+		"[Language]",
+		"[Game/utility type]",
+		"[Price]",
+		"[Protection scheme/loader]",
+		"[Origin]"
+	};
+	return new Block32(9, ids, txt);
 }
 
 /**
@@ -191,6 +226,12 @@ void doWavMode()
 {
 	TZX *tsx = new TZX();
 	WAV *wav = new WAV(wavfile);
+	bool msxload = false;
+
+	//Add 1st block with text info about this ripper
+	tsx->addBlock(new Block30(MAKETSX_TEXTBLOCK));
+	//Add the default Archive block for this tape
+	tsx->addBlock(addArchiveBlock());
 
 	if (!wav || !wav->getSize()) {
 		cout << getError() << " Error loading WAV file..." << endl << endl;
@@ -199,9 +240,13 @@ void doWavMode()
 	wav->showInfo();
 	cout << endl;
 	
+	//Normalize signal
+	cout << "Normalize signal..." << endl;
+	wav->normalize();
+
 	//Envelop correction
+	cout << "Envelop correction..." << endl;
 	wav->envelopeCorrection();
-	cout << "Envelop correction done..." << endl;
 
 	//Ripppers
 	MSX4B_Ripper *msx4b = new MSX4B_Ripper(wav);
@@ -213,9 +258,15 @@ void doWavMode()
 		// =========================================================
 		// Block 4B KCS (MSX specific implementation)
 		if (msx4b->detectBlock()) {
-			Block *b = msx4b->getDetectedBlock();
+			Block4B *b = (Block4B*) msx4b->getDetectedBlock();
 			cout << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " RIPPED" << endl;
 			if (!msx4b->eof()) cout << ">>------------------- START DETECTING BLOCK" << endl;
+			if (!msxload) {
+				if (b->getFileType() != 0xff) {
+					tsx->addBlock(new Block35("MSXLOAD", b->getFileTypeLoad()));
+				}
+				msxload = true;
+			}
 			tsx->addBlock(b);
 //tsx->saveToFile(tsxfile);
 		} else {
@@ -227,4 +278,3 @@ void doWavMode()
 
 	exit(0);
 }
-

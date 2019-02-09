@@ -32,6 +32,7 @@ namespace WAV_Class
 		bool saveToFile(string filename);
 		size_t getSize();
 
+		void normalize();
 		void envelopeCorrection();
 
 	protected:

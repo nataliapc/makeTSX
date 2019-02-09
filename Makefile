@@ -1,5 +1,5 @@
-CC=g++
-#CC=i686-w64-mingw32-g++
+#CC=g++
+CC=x86_64-w64-mingw32-g++
 #DEBUG=-D_DEBUG_
 
 CFLAGS=-static -I./includes -I$(IDIR) -Wall -O2 -std=gnu++11 $(DEBUG)

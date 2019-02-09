@@ -57,11 +57,49 @@ const char* Block::getBytes()
 	return bytes->getBytes();
 }
 
-void Block::dump()
+void Block::hexDump()
 {
 	bytes->Seek(0);
 	while (!bytes->isEOF()) {
 		cout << std::setfill ('0') << std::setw(2) << std::hex << (int)bytes->ReadUByte() << " ";
+	}
+	cout << endl;
+}
+
+void Block::hexCharDump()
+{
+	DWORD pos = 0;
+	BYTE cnt = 0, c;
+	while (true) {
+		//Position
+		cout << "#" << std::setfill ('0') << std::setw(4) << std::hex << pos << "  ";
+		//Hex
+		bytes->Seek(pos);
+		cnt = 16;
+		while (cnt--) {
+			if (bytes->isEOF()) {
+				cout << "   ";
+			} else {
+				cout << std::setfill ('0') << std::setw(2) << std::hex << (int)bytes->ReadUByte() << " ";
+			}
+		}
+		//Chars
+		bytes->Seek(pos);
+		cout << "  ";
+		cnt = 16;
+		while (cnt--) {
+			if (bytes->isEOF()) {
+				cout << " ";
+			} else {
+				c = bytes->ReadUByte();
+				if (c<32 || c>126) c='.';
+				cout << (char)c;
+			}
+		}
+		//Next line
+		cout << endl;
+		pos += 16;
+		if (bytes->isEOF()) return;
 	}
 }
 
@@ -721,13 +759,17 @@ Block32::Block32(istream &is)
 string Block32::toString()
 {
 	bytes->Seek(3);
-	int num = bytes->ReadUByte();
+	BYTE num = bytes->ReadUByte();
 
 	std::stringstream stream;
 	stream << Block::toString() << " - Archive info";
 	string idname, name;
+	WORD id, nameLen;
+	
+	bytes->Seek(4);
 	for (int i=0; i<num; i++) {
-		switch (bytes->ReadUByte()) {
+		id = bytes->ReadUByte();
+		switch (id) {
 			case 0x00: idname = "Full title:   "; break;
 			case 0x01: idname = "Publisher:    "; break;
 			case 0x02: idname = "Author(s):    "; break;
@@ -737,14 +779,14 @@ string Block32::toString()
 			case 0x06: idname = "Price:        "; break;
 			case 0x07: idname = "Prot/loader:  "; break;
 			case 0x08: idname = "Origin:       "; break;
-			case 0xFF: idname = "Comments:     "; break;
+			case 0xff: idname = "Comments:     "; break;
 			default:   idname = "UNKNOWN:      "; break;
 		}
-		name = bytes->ReadString(bytes->ReadUByte());
-		stream << endl << "\t" << idname << name;
+		nameLen = bytes->ReadUByte();
+		name = bytes->ReadString(nameLen);
+		stream << endl << "\t\t" << idname << name;
 	}
 	return stream.str();
-
 }
 
 // ============================================================================================
@@ -790,26 +832,26 @@ string Block33::toString()
 
 // ============================================================================================
 // Block #35 - Custom info block
-//	0x00	-	CHAR[10]	Identification string (in ASCII)
+//	0x00	-	CHAR[16]	Identification string (in ASCII)
 //	0x10	L	DWORD		Length of the custom info
 //	0x14	-	BYTE[L]		Custom info
 
 Block35::Block35(string label, string info)
 {
-	init(0x35, NULL, 10 + sizeof(DWORD) + info.length());
-	putString((label+"          ").substr(0, 10));
+	init(0x35, NULL, 16 + sizeof(DWORD) + info.length());
+	putString((label+"          ").substr(0, 16));
 	putDWord(info.length());
 	putString(info);
 }
 
 Block35::Block35(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, 14);
-	aux->WriteRawData(is, 14);
-	aux->Seek(10);
-	int len = aux->ReadUInt32() * sizeof(BYTE);
+	ByteBuffer *aux = new ByteBuffer(NULL, 16 + sizeof(DWORD));
+	aux->WriteRawData(is, 16 + sizeof(DWORD));
+	aux->Seek(16);
+	int len = aux->ReadUInt32();
 
-	init(0x35, NULL, 14 + len);
+	init(0x35, NULL, 16 + sizeof(DWORD) + len);
 	put(aux);
 	delete aux;
 
@@ -819,10 +861,12 @@ Block35::Block35(istream &is)
 string Block35::toString()
 {
 	bytes->Seek(1);
-	string label = bytes->ReadString(10);
-	DWORD len = bytes->ReadUInt64();
+	string label = bytes->ReadString(16);
+	DWORD len = bytes->ReadUInt32();
 	string info = bytes->ReadString(len);
-	return Block::toString() + " - Custom info block \"" + label + "\"\n" + info;
+	return Block::toString() + " - Custom info block" + 
+		"\n\t\tKey:   " + label +
+		"\n\t\tValue: " + info;
 }
 
 // ============================================================================================
@@ -842,6 +886,20 @@ string Block35::toString()
 //							Bit 1: Reserved
 //							Bit 0: Endianless (0 for LSb first, 1 for MSb first) {0}
 //	0x10	-	BYTE[N]		Data stream
+
+#define MSX_BINARY_ID    0xd0
+#define MSX_BASIC_ID     0xd3
+#define MSX_ASCII_ID     0xea
+#define MSX_UNKNOWN_ID   0xff
+
+#define MSX_BINARY_DESC "MSX BINARY Header"
+#define MSX_BASIC_DESC  "MSX BASIC Header";
+#define MSX_ASCII_DESC  "MSX ASCII Header";
+#define MSX_DATA_DESC   "MSX DATA Block";
+
+#define MSX_BINARY_LOAD "BLOAD\"CAS:\",R"
+#define MSX_BASIC_LOAD  "CLOAD\"CAS:\",R"
+#define MSX_ASCII_LOAD  "RUN\"CAS:\""
 
 Block4B::Block4B(WORD pause, WORD pilot, WORD pulses, WORD bit0len, WORD bit1len, BYTE bitcfg, BYTE bytecfg, char *data, size_t size)
 {
@@ -871,20 +929,78 @@ Block4B::Block4B(istream &is)
 	put(is, len);
 }
 
+BYTE Block4B::getFileType()
+{
+	bytes->Seek(17);
+	BYTE token = bytes->ReadUByte();
+	for (int i=0; i<9; i++) {
+		if (token != bytes->ReadUByte()) {
+			return MSX_UNKNOWN_ID;
+		}
+	}
+	if (token == MSX_BINARY_ID) return MSX_BINARY_ID;
+	if (token == MSX_BASIC_ID) return MSX_BASIC_ID;
+	if (token == MSX_ASCII_ID) return MSX_ASCII_ID;
+	return MSX_UNKNOWN_ID;
+}
+
+string Block4B::getFileTypeLoad()
+{
+	switch (getFileType()) {
+		case MSX_BINARY_ID:	//BLOAD
+			return MSX_BINARY_LOAD;
+		case MSX_BASIC_ID:	//CLOAD
+			return MSX_BASIC_LOAD;
+		case MSX_ASCII_ID:	//LOAD ASCII
+			return MSX_ASCII_LOAD;
+	}
+	return NULL;
+}
+
+string Block4B::getFileTypeDescription()
+{
+	switch (getFileType()) {
+		case MSX_BINARY_ID:	//BLOAD
+			return MSX_BINARY_DESC;
+		case MSX_BASIC_ID:	//CLOAD 
+			return MSX_BASIC_DESC;
+		case MSX_ASCII_ID:	//LOAD ASCII
+			return MSX_ASCII_DESC;
+	}
+	return MSX_DATA_DESC;
+}
+
 string Block4B::toString()
 {
+	return toString(false);
+}
+
+string Block4B::toString(bool isBinaryBlock)
+{
 	std::stringstream stream;
-	stream << Block::toString() << " - Kansas City Standard";
-
-	bytes->Seek(25);
-	BYTE token1 = bytes->ReadUByte();
-	BYTE token2 = bytes->ReadUByte();
-	if (token1==token2 && (token2==0xD3 || token2==0xD0 || token2==0xEA)) {
-		//Cabecera larga
-		stream << " - Found:" << bytes->ReadString(6);
+	
+	bytes->Seek(5);
+	WORD pause = bytes->ReadUInt16();
+	
+	stream << Block::toString() << " - Kansas City Standard" << " - DataLen: " << (bytes->getSize()-17) << " bytes" << endl <<
+		"\t\t" << getFileTypeDescription();
+	if (getFileType()==0xff) {
+		//Bloque Data
+		if (isBinaryBlock) {
+			bytes->Seek(17);
+			WORD begin = bytes->ReadUInt16();
+			WORD end = bytes->ReadUInt16();
+			WORD start = bytes->ReadUInt16();
+			stream << " [Begin: 0x" << std::setfill ('0') << std::setw(4) << std::hex << begin <<
+					  " End: 0x" << std::setfill ('0') << std::setw(4) << std::hex << end <<
+					  " Start: 0x" << std::setfill ('0') << std::setw(4) << std::hex << start << "]";
+		}
+	} else {
+		//Bloque Header
+		bytes->Seek(27);
+		stream << endl << "\t\tFound:" << bytes->ReadString(6);
 	}
-	stream << " - DataLen: " << (bytes->getSize()-17) << " bytes";
-
+	stream << endl << "\t\tPause " << std::dec << pause << "ms";
 	return stream.str();
 }
 
@@ -911,13 +1027,13 @@ string Block5A::toString()
 }
 
 
-//=================================
-//NOT IMPLEMENTED BLOCKS
-//=================================
+// =================================
+// NOT IMPLEMENTED BLOCKS
+// =================================
 
 
 // ============================================================================================
-//Block #19 - Generalized data block
+// Block #19 - Generalized data block
 //	0x00	 -		DWORD		Block length (without these four bytes)
 //	0x04	 -		WORD 		Pause after this block (ms)
 //	0x06	TOTP	DWORD		Total number of symbols in pilot/sync block (can be 0)
@@ -971,7 +1087,7 @@ string Block18::toString()
 }
 
 // ============================================================================================
-// ID 2B - Set signal level
+// Block #2B - Set signal level
 
 string Block2B::toString()
 {
@@ -984,8 +1100,103 @@ string Block2B::toString()
 //=================================
 
 
+// ============================================================================================
 // Block #16 - C64 ROM type data block
+
+Block16::Block16()
+{
+	cout << "Block #16 - C64 ROM type data block [DEPRECATED]";
+}
+
+Block16::Block16(istream &is)
+{
+	ByteBuffer *aux = new ByteBuffer(NULL, sizeof(DWORD));
+	aux->WriteRawData(is, sizeof(DWORD));
+	aux->Seek(0);
+	int len = aux->ReadUInt32();
+
+	init(0x16, NULL, sizeof(DWORD) + len);
+	put(aux);
+	delete aux;
+
+	put(is, len);
+}
+
+string Block16::toString()
+{
+	return Block::toString() + " - C64 ROM type data block [DEPRECATED]";
+}
+
+// ============================================================================================
 // Block #17 - C64 turbo tape data block
+
+Block17::Block17()
+{
+	cout << "Block #17 - C64 Turbo Tape Data Block [DEPRECATED]";
+}
+
+Block17::Block17(istream &is)
+{
+	ByteBuffer *aux = new ByteBuffer(NULL, sizeof(DWORD));
+	aux->WriteRawData(is, sizeof(DWORD));
+	aux->Seek(0);
+	int len = aux->ReadUInt32();
+
+	init(0x17, NULL, sizeof(DWORD) + len);
+	put(aux);
+	delete aux;
+
+	put(is, len);
+}
+
+string Block17::toString()
+{
+	return Block::toString() + " - C64 Turbo Tape Data Block [DEPRECATED]";
+}
+
+// ============================================================================================
 // Block #34 - Emulation info
-// Block #35 - Custom info deprecated types
+
+Block34::Block34()
+{
+	cout << "Block #34 - Emulation info Block [DEPRECATED]";
+}
+
+Block34::Block34(istream &is)
+{
+	init(0x5A, NULL, 8);
+	put(is, 8);
+}
+
+string Block34::toString()
+{
+	return Block::toString() + " - Emulation info block [DEPRECATED]";
+}
+
+// ============================================================================================
 // Block #40 - Snapshot block
+
+Block40::Block40()
+{
+	cout << "Block #40 - Snapshot block [DEPRECATED]";
+}
+
+Block40::Block40(istream &is)
+{
+	ByteBuffer *aux = new ByteBuffer(NULL, sizeof(WORD24) + 1);
+	aux->WriteRawData(is, sizeof(WORD24) + 1);
+	aux->Seek(1);
+	int len = aux->ReadUInt24();
+
+	init(0x40, NULL, sizeof(WORD24) + 1 + len);
+	put(aux);
+	delete aux;
+
+	put(is, len);
+}
+
+string Block40::toString()
+{
+	return Block::toString() + " - Snapshot block [DEPRECATED]";
+}
+

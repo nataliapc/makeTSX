@@ -76,21 +76,33 @@ void TZX::clear()
 
 void TZX::showInfo()
 {
-	Block *b;
-	for (size_t i=0; i<blocks->size(); i++) {
-		b = blocks->at(i);
-		cout << b->toString() << endl;
-	}
+	genericShowInfo(0);
 }
 
-void TZX::dump()
+void TZX::hexDump()
 {
-	Block *b;
+	genericShowInfo(1);
+}
+
+void TZX::hexCharDump()
+{
+	genericShowInfo(2);
+}
+
+void TZX::genericShowInfo(int typeDump)
+{
+	Block *b = NULL, *old;
 	for (size_t i=0; i<blocks->size(); i++) {
+		old = b;
 		b = blocks->at(i);
-		cout << b->toString() << endl;
-		b->dump();
-		cout << endl << "----" << endl;
+		if (b->getId()==0x4b && ((Block4B*)b)->getFileType()==0xff && old!=NULL && old->getId()==0x4b && ((Block4B*)old)->getFileType()==0xd0) {
+			cout << ((Block4B*)b)->toString(true) << endl;
+		} else {
+			cout << b->toString() << endl;
+		}
+		if (typeDump==1) b->hexDump();
+		if (typeDump==2) b->hexCharDump();
+		if (typeDump!=0) cout << "----------------" << endl << endl;
 	}
 }
 
@@ -147,10 +159,10 @@ bool TZX::loadFromFile(string filename)
 			case 0x19: b = new Block19(ifs); break;
 			case 0x2B: cout << "Block #2B NOT YET IMPLEMENTED" << endl; break;
 			//DEPRECATED
-			case 0x16: cout << "Block #16 IS DEPRECATED" << endl; break;
-			case 0x17: cout << "Block #17 IS DEPRECATED" << endl; break;
-			case 0x34: cout << "Block #34 IS DEPRECATED" << endl; break;
-			case 0x40: cout << "Block #40 IS DEPRECATED" << endl; break;
+			case 0x16: b = new Block16(ifs); break;
+			case 0x17: b = new Block17(ifs); break;
+			case 0x34: b = new Block34(ifs); break;
+			case 0x40: b = new Block40(ifs); break;
 			default:   cout << "Block " << std::hex << bid << " UNKNOWN!!" << endl; break;
 		}
 		if (b!=NULL) {

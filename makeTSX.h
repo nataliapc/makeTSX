@@ -2,8 +2,9 @@
 #define __MAIN_H__
 
 
-#define MAKETSX_VER		"0.5b"
-#define RELEASE_DATE	"2017.05.12"
+#define MAKETSX_VER			"0.6b"
+#define RELEASE_DATE		"2017.06.07"
+#define MAKETSX_TEXTBLOCK	"Tape ripped by MAKETSX v" MAKETSX_VER " @ishwin74"
 
 void showInfo();
 void showUsage();

@@ -23,7 +23,8 @@ namespace TZX_Blocks
 		size_t	getSize();
 		BYTE	getId();
 		const char* getBytes();
-		void	dump();
+		void	hexDump();
+		void	hexCharDump();
 		virtual string toString();
 		
 		Block& operator=(const Block &);
@@ -366,7 +367,11 @@ namespace TZX_Blocks
 	public:
 		Block4B(WORD pause, WORD pilot, WORD pulses, WORD bit0len, WORD bit1len, BYTE bitcfg, BYTE bytecfg, char *data, size_t size);
 		Block4B(istream &);
+		BYTE getFileType();
+		string getFileTypeLoad();
+		string getFileTypeDescription();
 		string toString() override;
+		string toString(bool);
 	};
 
 	// ============================================================================================
@@ -433,11 +438,35 @@ namespace TZX_Blocks
 
 	//=================================
 	// DEPRECATED BLOCKS
+	//=================================
 	// Block #16 - C64 ROM type data block
+	class Block16 : public Block {
+	public:
+		Block16();
+		Block16(istream &);
+		string toString() override;
+	};
 	// Block #17 - C64 turbo tape data block
+	class Block17 : public Block {
+	public:
+		Block17();
+		Block17(istream &);
+		string toString() override;
+	};
 	// Block #34 - Emulation info
-	// Block #35 - Custom info deprecated types
+	class Block34 : public Block {
+	public:
+		Block34();
+		Block34(istream &);
+		string toString() override;
+	};
 	// Block #40 - Snapshot block
+	class Block40 : public Block {
+	public:
+		Block40();
+		Block40(istream &);
+		string toString() override;
+	};
 
 }
 

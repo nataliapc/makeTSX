@@ -195,7 +195,7 @@ bool ByteBuffer::WriteByte(int8_t value) {
 }
 
 bool ByteBuffer::WriteString(std::string value) {
-	std::memcpy((void *)(data + pointer), (const void*)(value.data()), value.length());
+	std::memcpy((void *)(data + pointer), (const void*)(value.c_str()), value.length());
 	pointer += value.length();
 	return true;
 }

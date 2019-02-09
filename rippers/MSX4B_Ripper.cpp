@@ -47,7 +47,9 @@ bool MSX4B_Ripper::detectBlock()
 	bauds = 0;
 	if (checkPulseWidth(pulseLen, 1, 1200)) bauds = 1200;
 	if (checkPulseWidth(pulseLen, 1, 2400)) bauds = 2400;
-	if (bauds!=1200 && bauds!=2400) {
+//	if (checkPulseWidth(pulseLen, 1, 3200)) bauds = 3200;
+	if (checkPulseWidth(pulseLen, 1, 3675)) bauds = 3675;
+	if (!bauds) {
 #ifdef _DEBUG_
 		cout << WAVTIME(pos) << "Bad bauds detected: " << bauds << endl;
 #endif //_DEBUG_
@@ -256,7 +258,7 @@ WORD MSX4B_Ripper::getByte()
 	posIni += bitLen;
 	//Check 1
 	if (!(bitLen=checkBit1(posIni))) {
-		if (detectSilence(posIni) || detectSilence(posIni+1) || detectSilence(posIni+2) || detectSilence(posIni+3)) {
+		if (detectSilence(posIni)/* || detectSilence(posIni+1) || detectSilence(posIni+2) || detectSilence(posIni+3)*/) {
 			cout << WAVTIME(pos) << "WARNING: Bad 2nd stop bit: Silence detected. Ending block read..." << endl;
 			return 0xFFFF;
 		}

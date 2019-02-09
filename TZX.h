@@ -35,7 +35,8 @@ namespace TZX_Class
 
 		void clear();
 		void showInfo();
-		void dump();
+		void hexDump();
+		void hexCharDump();
 		bool loadFromFile(string filename);
 		bool saveToFile(string filename);
 
@@ -44,6 +45,9 @@ namespace TZX_Class
 		void   addBlock(Block *b);
 
 		TZX& operator=(const TZX& tzx);
+		
+	protected:
+		void genericShowInfo(int);
 
 	private:
 		BYTE majorVer;

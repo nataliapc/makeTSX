@@ -144,6 +144,49 @@ bool WAV::saveToFile(string filename)
 	return true;
 }
 
+void WAV::normalize()
+{
+/*	int8_t max=-128, min=127, ii;
+	long unsigned int cmax=0, cmin=0;
+	long unsigned int count[256];
+	BYTE* bdata = reinterpret_cast<BYTE*>(data);
+
+	//Detect max and min peaks
+	for (WORD i=0; i<256; i++) count[i]=0;
+	for (DWORD i=0; i<size; i++) {
+		count[bdata[i]]++;
+//printf("%-d -> %-d\n",data[i], bdata[i]);
+	}
+	for (WORD i=0; i<256; i++) {
+		ii = static_cast<int8_t>(i);
+printf("%-d -> %-d (%lu)\n",i, ii, count[i]);
+		if (count[i]>cmax && ii>max) {
+printf("OldMax: %d(%lu)  NewMax: %d(%lu)\n", max, cmax, ii, count[i]);
+			max = ii;
+			cmax = count[i];
+		} else
+		if (count[i]>cmin && ii<min) {
+printf("OldMin: %d(%lu)  NewMin: %d(%lu)\n", min, cmin, ii, count[i]);
+			min = ii;
+			cmin = count[i];
+		}
+//printf("%02X ", (BYTE)data[i]); cout << (signed int)data[i] << endl;
+	}
+cout << (signed int)min << " " << (signed int)max << endl;
+	
+	int16_t range = max-min;
+	int16_t v;
+printf("range: 0x%02X %d\n", (BYTE)range, range);
+	for (DWORD i=0; i<size; i++) {
+printf("%-d -> ", data[i]);
+		v = ((int16_t)data[i]) - min;
+printf("%-d -> ", v);
+		v = v * 240 / range;
+		data[i] = (int8_t)(v - 120);
+printf("%-d\n", data[i]);
+	}
+*/}
+
 void WAV::envelopeCorrection()
 {
 	const int32_t deviation = 20;
