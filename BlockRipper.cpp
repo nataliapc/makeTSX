@@ -15,11 +15,16 @@ size_t BlockRipper::pos = 0;
 
 BlockRipper::BlockRipper(WAV *wav)
 {
+	bool newWav = (this->data != wav->data);
+
 	this->header = wav->header;
 	this->data = wav->data;
 	this->size = wav->size;
-	pos = 0;
 	block = NULL;
+	if (newWav) {
+		pos = 0;
+		initializeStatesVector();
+	}
 }
 
 BlockRipper::BlockRipper(const BlockRipper& other)
@@ -36,59 +41,61 @@ BlockRipper::~BlockRipper()
 	this->data = NULL;
 }
 
+void BlockRipper::initializeStatesVector()
+{
+	DWORD lastStatePos = 0;
+	BYTE currState = getState(0);
+	BYTE newState;
+	DWORD samplesCnt = 0;
+
+	states.clear();
+	samples.clear();
+	for (DWORD i=0; i<size; i++) {
+		newState = getState(i);
+		if (newState != STATE_NOCHANGE) {
+			if (newState != currState && i-lastStatePos>1) {
+//cout << WAVTIME(i) << i << " cambio " << (int)(i-lastStatePos) << endl;
+				samples.push_back(samplesCnt);
+				states.push_back(i-lastStatePos);
+				samplesCnt += i-lastStatePos;
+				lastStatePos = i;
+				currState = newState;
+			}
+		}
+//cout << WAVTIME(i) << i << " \t " << std::dec << (unsigned int)(data[i]&0xff) << " \t " << (int)newState << " old:" << (int)currState << endl;
+	}
+}
+
 bool BlockRipper::detectSilence()
 {
-	DWORD pos2 = pos;
-	DWORD silence = 0;
-	BYTE state = getState(pos2);
+	return !eof() && states[pos] >= THRESHOLD_SILENCE;
+}
 
-	while (pos2 < size && silence <= THRESHOLD_SILENCE) {
-		if (getState(pos2)!=state) {
-			return false;
-		}
-		pos2++;
-		silence++;
-	}
-	return true;
+bool BlockRipper::detectSilence(DWORD position)
+{
+	return !eof() && states[position] >= THRESHOLD_SILENCE;
 }
 
 DWORD BlockRipper::skipSilence()
 {
-	DWORD posAux = pos;
-	DWORD pos2 = pos;
+	DWORD silenceCount = 0;
 
-	//Skip until state change
-	BYTE state = getState(pos2);
-	while (pos2 < size && getState(pos2)==state) {
-		pos2++;
+	while (!eof() && detectSilence()) {
+		silenceCount += states[pos];
+		pos++;
 	}
-	pos = pos2;
-	return pos - posAux;
+	return silenceCount;
 }
 
 DWORD BlockRipper::skipToNextSilence()
 {
-	uint32_t skip = 0;
-	while (pos < size) {
-		if (detectSilence()) return skip;
-		skip++;
+	DWORD skipCount = 0;
+
+	while (!eof() && !detectSilence()) {
+		skipCount += states[pos];
 		pos++;
 	}
-	return skip;
-}
-
-DWORD BlockRipper::getPulseWidth(DWORD posIni)
-{
-	DWORD width = 0, pos2 = posIni;
-	bool firstState = isHigh(pos2);
-	
-	for (; pos2 < size ; width++, pos2++) {
-		if (isSilence(pos2) || isHigh(pos2)!=firstState) break;
-	}
-#ifdef _DEBUG_
-	cout << WAVTIME(posIni) << "[" << std::dec << posIni << "] getPulseWidth() value:" << (int)(firstState?0:1) << " len:" << width << endl;
-#endif //_DEBUG_
-	return width;
+	return skipCount;
 }
 
 Block* BlockRipper::getDetectedBlock()
@@ -103,33 +110,27 @@ DWORD BlockRipper::getPos()
 
 void BlockRipper::incPos()
 {
-	if (pos<size) pos++;
+	if (!eof()) pos++;
 }
 
 bool BlockRipper::eof()
 {
-	return pos >= size;
+	return pos >= states.size();
 }
 
 BYTE BlockRipper::getState(int i)
 {
-	if (isSilence(i)) return STATE_MID;
 	if (isLow(i)) return STATE_LOW;
 	if (isHigh(i)) return STATE_HIGH;
-	return -1;
+	return STATE_NOCHANGE;
 }
 
 bool BlockRipper::isLow(int i)
 {
-	return data[i] < threshold;
+	return data[i] <= -threshold;
 }
 
 bool BlockRipper::isHigh(int i)
 {
 	return data[i] >= threshold;
-}
-
-bool BlockRipper::isSilence(int i)
-{
-	return abs(data[i]) < threshold;
 }

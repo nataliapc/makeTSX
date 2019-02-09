@@ -60,7 +60,7 @@ namespace WAV_Class
 		int8_t *data;
 		size_t size;
 
-		bool phase = true;
+		bool phase = false;
 
 		friend class BlockRipper;
 	};

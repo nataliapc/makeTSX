@@ -69,22 +69,26 @@ int main(int argc, const char* argv[])
 		} else
 		if (!strcasecmp(argv[i], "-wav")) {
 			wavmode = true;
-			wavfile = argv[++i];
+			if (++i < argc) {
+				wavfile = argv[i];
+			}
 		} else
 		if (!strcasecmp(argv[i], "-tsx")) {
-			tsxfile = argv[++i];
+			if (++i < argc) {
+				tsxfile = argv[i];
+			}
 		}
 	}
 	
 	if (tsxmode && wavmode) {
-		cout << "[ERROR] Incompatible switches at same time..." << endl << endl;
+		cout << getError() << " Incompatible switches at same time..." << endl << endl;
 		showUsage();
 		exit(1);
 	}
 
 	if (tsxmode) {
 		if (tsxfile=="") {
-			cout << "[ERROR] Input filename for TSX/TZX needed [use -tsx switch]..." << endl << endl;
+			cout << getError() << " Input filename for TSX/TZX needed [use -tsx switch]..." << endl << endl;
 			showUsage();
 			exit(1);
 		}
@@ -93,12 +97,12 @@ int main(int argc, const char* argv[])
 
 	if (wavmode) {
 		if (wavfile=="") {
-			cout << "[ERROR] Input filename for WAV needed [use -wav switch]..." << endl << endl;
+			cout << getError() << " Input filename for WAV needed [use -wav switch]..." << endl << endl;
 			showUsage();
 			exit(-1);
 		}
 		if (tsxfile=="") {
-			cout << "[ERROR] Output filename for TSX/TZX needed [use -tsx switch]..." << endl << endl;
+			cout << getError() << " Output filename for TSX/TZX needed [use -tsx switch]..." << endl << endl;
 			showUsage();
 			exit(1);
 		}
@@ -113,10 +117,12 @@ int main(int argc, const char* argv[])
  */
 void showInfo()
 {
-	cout << "===================================================" << endl;
-	cout << " makeTSX v" << MAKETSX_VER << " - WAV to TSX(TZX 1.21) Converter" << endl;
-	cout << " Using " << TZX_LIB << " by NataliaPC (" << RELEASE_DATE << ")" << endl;
-	cout << "===================================================" << endl;
+//	cout << "\033[0;32m";
+	cout << "==================================================" << endl;
+	cout << " makeTSX v" << MAKETSX_VER << " - WAV to TSX(~TZX 1.21) " << RELEASE_DATE << endl;
+	cout << " Using " << TZX_LIB << " by NataliaPC" << endl;
+	cout << "==================================================" << endl;
+//	cout << "\e[0m";
 	cout << endl;
 }
 
@@ -124,16 +130,29 @@ void showInfo()
  * @brief 
  */
 void showUsage() {
-	cout << "Usage: makeTSX [switchesWAV] -wav <WAV_IN_FILE> -tsx <TSX_OUT_FILE>" << endl;
+//	cout << "\033[0;32m";
+	cout << "Usage:" << endl;
+//	cout << "\e[0m";
+	cout << "       makeTSX [switchesWAV] -wav <WAV_IN_FILE> -tsx <TSX_OUT_FILE>" << endl;
 	cout << "       makeTSX [switchesTSX] -tsx <TSX_IN_FILE>" << endl;
+//	cout << "\033[0;32m";
 	cout << "SwitchesWAV:" << endl;
-	cout << "       -n   Normalize WAV input." << endl;
-	cout << "       -e   Envelope correction." << endl;
-	cout << "       -t   Threshold factor." << endl;
+//	cout << "\e[0m";
+	cout << "       none in current version" << endl;
+//	cout << "       -n   Normalize WAV input." << endl;
+//	cout << "       -e   Envelope correction." << endl;
+//	cout << "       -t   Threshold factor." << endl;
+//	cout << "\033[0;32m";
 	cout << "SwitchesTSX:" << endl;
+//	cout << "\e[0m";
 	cout << "       -i   Show TSX/TZX verbose blocks info." << endl;
 	cout << "       -d   Dump TSX/TZX blocks hexadecimal data." << endl;
 	cout << endl;
+}
+
+const char* getError() {
+//	return (const char*)"\033[1;31m[ERROR]\e[0m";
+	return (const char*)"[ERROR]";
 }
 
 /**
@@ -143,18 +162,22 @@ void doTsxMode()
 {
 	TZX *tsx = new TZX(tsxfile);
 	if (!tsx || !tsx->getNumBlocks()) {
-		cout << "[ERROR] Error loading TSX file..." << endl << endl;
+		cout << getError() << " Error loading TSX file..." << endl << endl;
 		exit(1);
 	}
 	if (tsxinfo) {
+//		cout << "\033[0;32m";
 		cout << "TSX/TZX Blocks info:" << endl;
 		cout << "====================" << endl;
+//		cout << "\e[0m";
 		tsx->showInfo();
 		cout << endl;
 	}
 	if (tsxdump) {
+//		cout << "\033[0;32m";
 		cout << "TSX/TZX Blocks dump" << endl;
 		cout << "====================" << endl;
+//		cout << "\e[0m";
 		tsx->dump();
 		cout << endl;
 	}
@@ -170,20 +193,19 @@ void doWavMode()
 	WAV *wav = new WAV(wavfile);
 
 	if (!wav || !wav->getSize()) {
-		cout << "[ERROR] Error loading WAV file..." << endl << endl;
+		cout << getError() << " Error loading WAV file..." << endl << endl;
 		exit(1);
 	}
 	wav->showInfo();
 	cout << endl;
 	
 	//Envelop correction
-	if (wavenvelop) {
-		wav->envelopeCorrection();
-		cout << "Envelop correction done..." << endl << endl;
-	}
+	wav->envelopeCorrection();
+	cout << "Envelop correction done..." << endl;
 
 	//Ripppers
 	MSX4B_Ripper *msx4b = new MSX4B_Ripper(wav);
+	cout << "Detecting pulses..." << endl << endl;
 
 	cout << ">>------------------- START RIPPING ---------------------" << endl;
 	cout << ">>------------------- START DETECTING BLOCK" << endl;
@@ -195,6 +217,7 @@ void doWavMode()
 			cout << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " RIPPED" << endl;
 			if (!msx4b->eof()) cout << ">>------------------- START DETECTING BLOCK" << endl;
 			tsx->addBlock(b);
+//tsx->saveToFile(tsxfile);
 		} else {
 			if (!msx4b->eof()) msx4b->incPos();
 		}

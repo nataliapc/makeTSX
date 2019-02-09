@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "stdint.h"
+#include <vector>
 
 #include "TZX_Blocks.h"
 #include "WAV.h"
@@ -18,23 +19,23 @@ namespace WAV_Class {
 
 	#define Z80HZ			((uint32_t)3500000)		// ZX Standard 3.5 Mhz
 	#define WAVSampleRate	(header->nSamplesPerSec)
-	#define WAVTIME(pos)	"[" << ((float)pos/WAVSampleRate) << "s] "
+	#define WAVTIME(pos)	"[" << ((float)samples[pos]/WAVSampleRate) << "s] "
 
 
 	class BlockRipper
 	{
 	public:
-		const BYTE	STATE_LOW  = 1;
-		const BYTE	STATE_MID  = 2;
-		const BYTE	STATE_HIGH = 3;
+		const BYTE	STATE_LOW      = 0;
+		const BYTE	STATE_HIGH     = 1;
+		const BYTE	STATE_NOCHANGE = 127;
 
 		BlockRipper(WAV *);
 		BlockRipper(const BlockRipper& other);
 		~BlockRipper();
 
 		virtual	bool detectBlock() = 0;
-		DWORD	getPulseWidth(DWORD posini);
 		bool 	detectSilence();
+		bool 	detectSilence(DWORD);
 		DWORD	skipSilence();
 		DWORD	skipToNextSilence();
 		Block*	getDetectedBlock();
@@ -43,21 +44,22 @@ namespace WAV_Class {
 		bool	eof();
 
 	protected:
-		BYTE getState(int i);
+		const static DWORD THRESHOLD_SILENCE = 100;
+		int8_t threshold = 30;
+		Block *block;					//Block detected
+		WAV::Header *header;			//Pointer to the WAV header
+		vector<DWORD> states;			//Vector with state change positions
+		vector<DWORD> samples;			//Vector with samples from beginning
+		static size_t pos;				//Index with the current data byte in vector states
+
+	private:
+		int8_t *data;					//Pointer to the WAV data
+		size_t size;					//Size of the WAV data
+
+		void initializeStatesVector();
 		bool isLow(int i);
 		bool isHigh(int i);
-		bool isSilence(int i);
-
-		const static DWORD THRESHOLD_SILENCE = 150;
-
-		int8_t threshold = 5;
-
-		WAV::Header *header;	//Pointer to the WAV header
-		int8_t *data;			//Pointer to the WAV data
-		size_t size;			//Size of the WAV data
-		static size_t pos;		//Index with the current data byte in *data
-
-		Block *block;			//Block detected
+		BYTE getState(int i);
 	};
 
 }

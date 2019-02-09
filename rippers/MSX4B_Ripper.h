@@ -10,6 +10,31 @@ using namespace WAV_Class;
 
 namespace Rippers {
 
+	/**
+	 * @class MSX4B_Ripper
+	 * @author NataliaPC
+	 * @date 10/03/17
+	 * @file MSX4B_Ripper.h
+	 * 
+	 * Class to detect Kansas City Standard Blocks used by MSX Computers
+	 * 
+	 * Header to define bauds of the data block:
+	 *  Short 1200 bauds ... 3840 cycles  (7680 pulses)  ~ 1.5 sec
+	 *  Large 1200 bauds ... 15360 cycles (30720 pulses) ~ 6.1 sec
+	 *  Short 2400 bauds ... 7936 cycles  (15872 pulses) ~ 1.6 sec
+	 *  Large 2400 bauds ... 31744 cycles (63488 pulses) ~ 6.3 sec
+	 * 
+	 * Bits encoded at 1200 bauds:
+	 *  0 ________""""""""  1 cycles at 1200Hz
+	 *  1 ____""""____""""  2 cycles at 2400Hz
+	 * 
+	 * Bits encoded at 2400 bauds:
+	 *  0 ____""""  1 cycles at 2400Hz
+	 *  1 __""__""  2 cycles at 4800Hz
+	 * 
+	 * Each Byte is encoded with 11 bits with 1 starter bit(0) and 2 stop bits(1):
+	 *  0 b0 b1 b2 b3 b4 b5 b6 b7 1 1
+	 */
 	class MSX4B_Ripper : public BlockRipper
 	{
 	public:
@@ -19,21 +44,13 @@ namespace Rippers {
 		bool detectBlock();
 		
 	protected:
-		DWORD skipSilence();
-		DWORD skipToNextSilence();
 		bool checkPulseWidth(DWORD pulseWidth, WORD pulses, DWORD bauds);
-		/*
-		 * 1200 Baudios CORTA ... 3840 ciclos (7680 pulsos) ~ 1.5 segundos
-		 * 1200 Baudios LARGA ... 15360 ciclos (30720 pulsos) ~ 6.1 segundos
-		 * 2400 Baudios CORTA ... 7936 ciclos (15872 pulsos) ~ 1.6 segundos
-		 * 2400 Baudios LARGA ... 31744 ciclos (63488 pulsos) ~ 6.3 segundos
-		 */
 		bool checkHeader(DWORD posIni);
 		DWORD checkBit0(DWORD posIni);
 		DWORD checkBit1(DWORD posIni);
 		WORD getByte();
 
-		const static DWORD THRESHOLD_HEADER = 25;
+		const static DWORD THRESHOLD_HEADER = 1000;
 
 		struct BlockInfo {
 			WORD pausems;		//Pause after this block in milliseconds
@@ -41,8 +58,8 @@ namespace Rippers {
 			WORD pulses;		//Number of pulses in the PILOT tone
 			WORD bit0len;		//Duration of a ZERO pulse in T-states {=2*pilot}
 			WORD bit1len;		//Duration of a ONE pulse in T-states {=pilot}
-			const BYTE bitcfg = 0x24;
-			const BYTE bytecfg = 0x54;
+			BYTE bitcfg = 0x24;
+			BYTE bytecfg = 0x54;
 		} blockInfo;
 		DWORD bauds = 0;
 	};

@@ -146,19 +146,23 @@ bool WAV::saveToFile(string filename)
 
 void WAV::envelopeCorrection()
 {
-	const int16_t deviation = 38;
+	const int32_t deviation = 20;
 
-	int16_t avg;
+	for (DWORD i=0; i<size; i++) {
+		data[i] = (int16_t)(((uint16_t)data[i]&0xff)-0x80);
+	}
+
+	int32_t avg;
 	for (DWORD i=1; i<size-1; i++) {
-		avg = (data[i-1] + data[i] + data[i+1]) / 3;
+		avg = ( ( (int32_t)data[i-1] + (int32_t)data[i] + (int32_t)data[i+1] ) / 3);
 		if (std::abs(avg - data[i-1]) < deviation && std::abs(avg - data[i]) < deviation && std::abs(avg - data[i+1]) < deviation) {
-			data[i-1] = data[i] = data[i+1] = (BYTE)avg;
+			data[i-1] = data[i] = data[i+1] = (int8_t)avg;
 		}
 	}
 	for (DWORD i=1; i<size-1; i++) {
-		data[i] = (char)((0.5f * (float)data[i-1] +
-						  1.0f * (float)data[i] +
-						  2.0f * (float)data[i+1]) / 3.5f);
+		data[i] = (int8_t)((0.5f * (float)data[i-1] +
+							1.0f * (float)data[i] +
+							2.0f * (float)data[i+1]) / 3.5f);
 	}
 }
 
