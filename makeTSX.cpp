@@ -11,6 +11,9 @@
 #include "TZX_Blocks.h"
 #include "WAV.h"
 #include "BlockRipper.h"
+#include "rippers/B10_Standard_Ripper.h"
+#include "rippers/B12_PureTone_Ripper.h"
+#include "rippers/B20_Silence_Ripper.h"
 #include "rippers/MSX4B_Ripper.h"
 
 
@@ -26,9 +29,10 @@ bool tsxmode = false, wavmode = false;
 bool tsxinfo = false;
 bool tsxdump = false;
 bool tsxhexchr = false;
-bool wavnomalize = false;
-bool wavenvelop = true;
-bool wavthreshold = false;
+bool wavnormalize = true;
+bool wavenveloppe = true;
+bool outnormalize = false;
+bool outenveloppe = false;
 
 
 /**
@@ -61,21 +65,19 @@ int main(int argc, const char* argv[])
 			tsxmode = true;
 			tsxhexchr = true;
 		} else
-/*		if (!strcasecmp(argv[i], "-n")) {
-			wavmode = true;
-			wavnomalize = true;
-		} else
-		if (!strcasecmp(argv[i], "-e")) {
-			wavmode = true;
-			wavenvelop = true;
-		} else
-		if (!strcasecmp(argv[i], "-t")) {
-			wavmode = true;
-			wavthreshold = true;
-		} else
-*/		if (!strcasecmp(argv[i], "-v")) {
+		if (!strcasecmp(argv[i], "-v")) {
 			wavmode = true;
 			BlockRipper::setVerboseMode(true);
+		} else
+		if (!strcasecmp(argv[i], "-dn")) {
+			wavmode = true;
+			wavnormalize = false;
+			outnormalize = false;
+		} else
+		if (!strcasecmp(argv[i], "-de")) {
+			wavmode = true;
+			wavenveloppe = false;
+			outenveloppe = false;
 		} else
 		if (!strcasecmp(argv[i], "-di")) {
 			wavmode = true;
@@ -84,6 +86,16 @@ int main(int argc, const char* argv[])
 		if (!strcasecmp(argv[i], "-dp")) {
 			wavmode = true;
 			BlockRipper::setPredictiveMode(false);
+		} else
+		if (!strcasecmp(argv[i], "-outn")) {
+			wavmode = true;
+			outnormalize = true;
+			wavnormalize = true;
+		} else
+		if (!strcasecmp(argv[i], "-oute")) {
+			wavmode = true;
+			outenveloppe = true;
+			wavenveloppe = true;
 		} else
 		if (!strcasecmp(argv[i], "-wav")) {
 			wavmode = true;
@@ -95,6 +107,10 @@ int main(int argc, const char* argv[])
 			if (++i < argc) {
 				tsxfile = argv[i];
 			}
+		} else {
+			cout << getError() << " Unknown switch: " << argv[i] << endl << endl;
+			showUsage();
+			exit(1);
 		}
 	}
 	
@@ -156,18 +172,19 @@ void showUsage() {
 //	cout << "\033[0;32m";
 	cout << "SwitchesWAV:" << endl;
 //	cout << "\e[0m";
-	cout << "       -v   Verbose mode." << endl;
-	cout << "       -di  Disable interactive mode." << endl;
-	cout << "       -dp  Disable predictive bits forward (don't use stop bits to predict)." << endl;
-//	cout << "       -n   Normalize WAV input." << endl;
-//	cout << "       -e   Envelope correction." << endl;
-//	cout << "       -t   Threshold factor." << endl;
+	cout << "       -v    Verbose mode." << endl;
+	cout << "       -di   Disable interactive mode." << endl;
+	cout << "       -dp   Disable predictive bits forward (don't use stop bits to predict)." << endl;
+	cout << "       -dn   Disable normalize audio." << endl;
+	cout << "       -de   Disable enveloppe filter correction." << endl;
+	cout << "       -outn Save the file 'wav_normalized.wav'." << endl;
+	cout << "       -oute Save the file 'wav_envelopped.wav'." << endl;
 //	cout << "\033[0;32m";
 	cout << "SwitchesTSX:" << endl;
 //	cout << "\e[0m";
-	cout << "       -i   Show TSX/TZX verbose blocks info." << endl;
-	cout << "       -d   Dump TSX/TZX data blocks in hexadecimal format." << endl;
-	cout << "       -c   Dump TSX/TZX data blocks in hex-char format." << endl;
+	cout << "       -i    Show TSX/TZX verbose blocks info." << endl;
+	cout << "       -d    Dump TSX/TZX data blocks in hexadecimal format." << endl;
+	cout << "       -c    Dump TSX/TZX data blocks in hex-char format." << endl;
 	cout << endl;
 }
 
@@ -264,42 +281,136 @@ void doWavMode()
 	tsx->addBlock(addArchiveBlock());
 
 	//Normalize signal
-	if (wavnomalize) {
+	if (wavnormalize) {
 		cout << "Normalize signal..." << endl;
 		wav->normalize();
+		if (outnormalize) {
+			cout << "Saving WAV file 'wav_normalized.wav'..." << endl;
+			wav->saveToFile("wav_normalized.wav");
+		}
 	}
 
 	//Envelop correction
-	if (wavenvelop) {
-		cout << "Envelop correction..." << endl;
+	if (wavenveloppe) {
+		cout << "Enveloppe filter correction..." << endl;
 		wav->envelopeCorrection();
+		if (outenveloppe) {
+			cout << "Saving WAV file 'wav_envelopped.wav'..." << endl;
+			wav->saveToFile("wav_envelopped.wav");
+		}
 	}
 
 	//Ripppers
-	MSX4B_Ripper *msx4b = new MSX4B_Ripper(wav);
+	B10_Standard_Ripper *std10 = new B10_Standard_Ripper(wav);
+	B12_PureTone_Ripper *ton12 = new B12_PureTone_Ripper(wav);
+	B20_Silence_Ripper  *sil20 = new B20_Silence_Ripper(wav);
+	MSX4B_Ripper        *msx4b = new MSX4B_Ripper(wav);
+
 	cout << "Detecting pulse lengths..." << endl << endl;
 
 	cout << ">>------------------- START RIPPING ---------------------" << endl;
 	cout << ">>------------------- START DETECTING BLOCK" << endl;
+	WORD initialBlocks = tsx->getNumBlocks();
 	while (!msx4b->eof()) {
+		// =========================================================
+		// Block 20 Silence
+		if (sil20->detectBlock()) {
+
+			Block20 *b = (Block20*) sil20->getDetectedBlock();
+			if (tsx->getNumBlocks() == initialBlocks) {
+				if (!msx4b->eof()) cout << "<<------------------- SKIP SILENCE: IS FIRST BLOCK" << endl;
+			} else {
+				Block20 *last = (Block20*)tsx->getLastBlock();
+				//Add silence to previous blocks if support it
+				if (last->getId()==0x20) {
+					last->addPause(b->getPause());
+					cout << "<<------------------- SILENCE ADDED TO LAST BLOCK" << endl;
+				} else
+				if (last->getId()==0x4b) {
+					((Block4B*)last)->addPause(b->getPause());
+					cout << "<<------------------- SILENCE ADDED TO LAST BLOCK" << endl;
+				} else
+				if (last->getId()==0x10) {
+					((Block10*)last)->addPause(b->getPause());
+					cout << "<<------------------- SILENCE ADDED TO LAST BLOCK" << endl;
+				} else
+				if (last->getId()==0x11) {
+					((Block11*)last)->addPause(b->getPause());
+					cout << "<<------------------- SILENCE ADDED TO LAST BLOCK" << endl;
+				} else
+				if (last->getId()==0x14) {
+					((Block14*)last)->addPause(b->getPause());
+					cout << "<<------------------- SILENCE ADDED TO LAST BLOCK" << endl;
+				} else {
+					cout << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " SILENCE RIPPED" << endl;
+					tsx->addBlock(b);
+				}
+			}
+			if (!sil20->eof()) cout << ">>------------------- START DETECTING BLOCK" << endl;
+
+		} else
+		// =========================================================
+		// Block 12 Pure Tone
+		if (ton12->detectBlock()) {
+
+			Block12 *b = (Block12*) ton12->getDetectedBlock();
+			cout << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " PURE TONE BLOCK RIPPED" << endl;
+			tsx->addBlock(b);
+			if (!ton12->eof()) cout << ">>------------------- START DETECTING BLOCK" << endl;
+
+		} else
+		// =========================================================
+		// Block 10 Standard Speed Data
+		if (std10->detectBlock()) {
+
+			Block10 *b = (Block10*) std10->getDetectedBlock();
+			cout << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " STANDARD SPEED BLOCK RIPPED" << endl;
+			tsx->addBlock(b);
+			if (!std10->eof()) cout << ">>------------------- START DETECTING BLOCK" << endl;
+
+		} else
 		// =========================================================
 		// Block 4B KCS (MSX specific implementation)
 		if (msx4b->detectBlock()) {
+			
 			Block4B *b = (Block4B*) msx4b->getDetectedBlock();
-			cout << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " RIPPED" << endl;
-			if (!msx4b->eof()) cout << ">>------------------- START DETECTING BLOCK" << endl;
-			if (!msxload) {
+			cout << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " KCS RIPPED" << endl;
+			//If first 4B block we must add a 0x35 block
+			if (b->getId()==0x4b && !msxload) {
 				if (b->getFileType() != 0xff) {
 					tsx->addBlock(new Block35("MSXLOAD", b->getFileTypeLoad()));
 				}
 				msxload = true;
 			}
+			//Add the block
 			tsx->addBlock(b);
-//tsx->saveToFile(tsxfile);
-		} else {
-			if (!msx4b->eof()) msx4b->incPos();
+			if (!msx4b->eof()) cout << ">>------------------- START DETECTING BLOCK" << endl;
+
+		} else
+		// =========================================================
+		// Nothing detected
+		{
+			if (!msx4b->eof()) {
+				msx4b->incPos();
+			}
 		}
 	}
+	//If last block remove pause
+	Block *b = tsx->getLastBlock();
+	if (b->getId()==0x4b) {
+		((Block4B*)b)->setPause(0);
+	} else
+	if (b->getId()==0x10) {
+		((Block10*)b)->setPause(0);
+	} else
+	if (b->getId()==0x11) {
+		((Block11*)b)->setPause(0);
+	} else
+	if (b->getId()==0x14) {
+		((Block14*)b)->setPause(0);
+	}
+
+	//Save TSX file
 	tsx->saveToFile(tsxfile);
 	cout << "<<-------------------- END RIPPING ----------------------" << endl;
 

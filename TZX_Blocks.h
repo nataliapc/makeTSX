@@ -54,8 +54,10 @@ namespace TZX_Blocks
 	class Block10 : public Block
 	{
 	public:
-		Block10(WORD pause, WORD len, char* data, size_t size);
+		Block10(WORD pause, char* data, size_t size);
 		Block10(istream &);
+		void   setPause(WORD pause);
+		void   addPause(WORD);
 		string toString() override;
 	};
 
@@ -77,6 +79,8 @@ namespace TZX_Blocks
 	public:
 		Block11(WORD pilotlen, WORD synclen1, WORD synclen2, WORD bit0len, WORD bit1len, WORD pilotnum, BYTE rbits, WORD pause, char *data, size_t size);
 		Block11(istream &);
+		void   setPause(WORD pause);
+		void   addPause(WORD);
 		string toString() override;
 	};
 
@@ -120,6 +124,8 @@ namespace TZX_Blocks
 	public:
 		Block14(WORD bit0len, WORD bit1len, BYTE rbits, WORD pause, char *data, size_t size);
 		Block14(istream &);
+		void   setPause(WORD pause);
+		void   addPause(WORD);
 		string toString() override;
 	};
 
@@ -148,6 +154,9 @@ namespace TZX_Blocks
 	public:
 		Block20(WORD pause);
 		Block20(istream &);
+		WORD getPause();
+		void setPause(WORD pause);
+		void addPause(WORD pause);
 		string toString() override;
 	};
 
@@ -367,9 +376,11 @@ namespace TZX_Blocks
 	public:
 		Block4B(WORD pause, WORD pilot, WORD pulses, WORD bit0len, WORD bit1len, BYTE bitcfg, BYTE bytecfg, char *data, size_t size);
 		Block4B(istream &);
-		BYTE getFileType();
+		BYTE   getFileType();
 		string getFileTypeLoad();
 		string getFileTypeDescription();
+		void   setPause(WORD pause);
+		void   addPause(WORD);
 		string toString() override;
 		string toString(bool);
 	};

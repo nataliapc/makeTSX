@@ -50,9 +50,15 @@ size_t TZX::getNumBlocks()
 	return blocks->size();
 }
 
-Block TZX::getBlock(size_t index)
+Block* TZX::getBlock(size_t index)
 {
-	Block b = *(blocks->at(index));
+	Block *b = blocks->at(index);
+	return b;
+}
+
+Block* TZX::getLastBlock()
+{
+	Block *b = blocks->at(blocks->size()-1);
 	return b;
 }
 

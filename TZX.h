@@ -41,7 +41,8 @@ namespace TZX_Class
 		bool saveToFile(string filename);
 
 		size_t getNumBlocks();
-		Block  getBlock(size_t index);
+		Block* getBlock(size_t index);
+		Block* getLastBlock();
 		void   addBlock(Block *b);
 
 		TZX& operator=(const TZX& tzx);

@@ -150,8 +150,13 @@ bool WAV::saveToFile(string filename)
 	std::ofstream ofs (filename, std::ofstream::out | std::ios::binary);
 	if (!ofs.is_open()) return false;
 
+	WORD bits = header->wBitsPerSample;
+	header->wBitsPerSample = 8;
+
 	ofs.write((char*)header, sizeof(Header));
 	ofs.write((char*)data, size);
+
+	header->wBitsPerSample = bits;
 
 	ofs.close();
 	return true;
@@ -159,46 +164,34 @@ bool WAV::saveToFile(string filename)
 
 void WAV::normalize()
 {
-/*	int8_t max=-128, min=127, ii;
-	long unsigned int cmax=0, cmin=0;
-	long unsigned int count[256];
 	BYTE* bdata = reinterpret_cast<BYTE*>(data);
-
-	//Detect max and min peaks
-	for (WORD i=0; i<256; i++) count[i]=0;
-	for (DWORD i=0; i<size; i++) {
-		count[bdata[i]]++;
-//printf("%-d -> %-d\n",data[i], bdata[i]);
-	}
-	for (WORD i=0; i<256; i++) {
-		ii = static_cast<int8_t>(i);
-printf("%-d -> %-d (%lu)\n",i, ii, count[i]);
-		if (count[i]>cmax && ii>max) {
-printf("OldMax: %d(%lu)  NewMax: %d(%lu)\n", max, cmax, ii, count[i]);
-			max = ii;
-			cmax = count[i];
-		} else
-		if (count[i]>cmin && ii<min) {
-printf("OldMin: %d(%lu)  NewMin: %d(%lu)\n", min, cmin, ii, count[i]);
-			min = ii;
-			cmin = count[i];
-		}
-//printf("%02X ", (BYTE)data[i]); cout << (signed int)data[i] << endl;
-	}
-cout << (signed int)min << " " << (signed int)max << endl;
-	
-	int16_t range = max-min;
+	DWORD  pos = 0;
+	DWORD  len = header->nSamplesPerSec * 5 / 1000;		//Segmentos de 10ms
+	int16_t min, max;
 	int16_t v;
-printf("range: 0x%02X %d\n", (BYTE)range, range);
-	for (DWORD i=0; i<size; i++) {
-printf("%-d -> ", data[i]);
-		v = ((int16_t)data[i]) - min;
-printf("%-d -> ", v);
-		v = v * 240 / range;
-		data[i] = (int8_t)(v - 120);
-printf("%-d\n", data[i]);
+
+	while (pos < size) {
+		max = -128;
+		min = 127;
+		for (DWORD i=pos; i<pos+len && i<size; i++) {
+			v = (int16_t)bdata[i] - 0x80;
+			if (v > max && v > 5) { max = v; }
+			if (v < min && v <-5) { min = v; }
+		}
+		min = min;
+		for (DWORD i=pos; i<pos+len && i<size; i++) {
+			v = (int16_t)bdata[i] - 0x80;
+			if (v > 0) {
+				v = v * 127 / max;
+			}
+			if (v < 0) {
+				v = v * -127 / min;
+			}
+			bdata[i] = (BYTE)(v + 0x80);
+		}
+		pos += len;
 	}
-*/}
+}
 
 void WAV::envelopeCorrection()
 {

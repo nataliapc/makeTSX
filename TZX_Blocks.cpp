@@ -167,7 +167,7 @@ void Block::put(ByteBuffer *buff) {
 //	0x02 	N 	WORD 	    Length of data that follow
 //	0x04 	- 	BYTE[N]     Data as in .TAP files
 
-Block10::Block10(WORD pause, WORD len, char *data, size_t size)
+Block10::Block10(WORD pause, char *data, size_t size)
 {
 	init(0x10, NULL, 4 + size*sizeof(BYTE));
 	putWord(pause);
@@ -187,6 +187,20 @@ Block10::Block10(istream &is)
 	delete aux;
 
 	put(is, len);
+}
+
+void Block10::setPause(WORD pause)
+{
+	bytes->Seek(1);
+	bytes->WriteUInt16(pause);
+}
+
+void Block10::addPause(WORD pause)
+{
+	bytes->Seek(1);
+	pause += bytes->ReadUInt16();
+	
+	setPause(pause);
 }
 
 string Block10::toString()
@@ -240,6 +254,20 @@ Block11::Block11(istream &is)
 	delete aux;
 
 	put(is, len);
+}
+
+void Block11::setPause(WORD pause)
+{
+	bytes->Seek(0xd+1);
+	bytes->WriteUInt16(pause);
+}
+
+void Block11::addPause(WORD pause)
+{
+	bytes->Seek(0xd+1);
+	pause += bytes->ReadUInt16();
+	
+	setPause(pause);
 }
 
 string Block11::toString()
@@ -340,6 +368,20 @@ Block14::Block14(istream &is)
 	put(is, len);
 }
 
+void Block14::setPause(WORD pause)
+{
+	bytes->Seek(6);
+	bytes->WriteUInt16(pause);
+}
+
+void Block14::addPause(WORD pause)
+{
+	bytes->Seek(6);
+	pause += bytes->ReadUInt16();
+	
+	setPause(pause);
+}
+
 string Block14::toString()
 {
 	return Block::toString() + " - Pure data block";
@@ -398,6 +440,24 @@ Block20::Block20(istream &is)
 {
 	init(0x20, NULL, 2);
 	put(is, 2);
+}
+
+WORD Block20::getPause()
+{
+	bytes->Seek(1);
+	return bytes->ReadUInt16();
+}
+
+void Block20::setPause(WORD pause)
+{
+	bytes->Seek(1);
+	bytes->WriteUInt16(pause);
+}
+
+void Block20::addPause(WORD pause)
+{
+	pause += getPause();
+	setPause(pause);
 }
 
 string Block20::toString()
@@ -968,6 +1028,20 @@ string Block4B::getFileTypeDescription()
 			return MSX_ASCII_DESC;
 	}
 	return MSX_DATA_DESC;
+}
+
+void Block4B::setPause(WORD pause)
+{
+	bytes->Seek(5);
+	bytes->WriteUInt16(pause);
+}
+
+void Block4B::addPause(WORD pause)
+{
+	bytes->Seek(5);
+	pause += bytes->ReadUInt16();
+	
+	setPause(pause);
 }
 
 string Block4B::toString()

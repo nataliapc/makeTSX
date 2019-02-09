@@ -86,12 +86,12 @@ void BlockRipper::initializeStatesVector()
 
 bool BlockRipper::detectSilence()
 {
-	return !eof() && states[pos] >= THRESHOLD_SILENCE;
+	return detectSilence(pos);
 }
 
-bool BlockRipper::detectSilence(DWORD position)
+bool BlockRipper::detectSilence(DWORD pos)
 {
-	return !eof() && states[position] >= THRESHOLD_SILENCE;
+	return (!eof(pos) && states[pos] >= THRESHOLD_SILENCE);
 }
 
 DWORD BlockRipper::skipSilence()
@@ -139,6 +139,11 @@ DWORD BlockRipper::getSize()
 bool BlockRipper::eof()
 {
 	return pos >= states.size();
+}
+
+bool BlockRipper::eof(DWORD posIni)
+{
+	return posIni >= states.size();
 }
 
 BYTE BlockRipper::getState(int i)
