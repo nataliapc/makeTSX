@@ -1,2 +1,2 @@
 # makeTSX
-Program to create TSX programs for MSX computers from WAV files
+Program to create TSX files for MSX computers from WAV tapes.
