@@ -1,10 +1,10 @@
 #
-# Makefile for Linux x64
+# Makefile for Windows x32
 #
-CC=g++
+CC=i686-w64-mingw32-g++
 #DEBUG=-D_DEBUG_
 
-CFLAGS=-static -I./includes -I$(IDIR) -Wall -O2 -std=gnu++11 $(DEBUG)
+CFLAGS=-m32 -static -static-libstdc++ -I./includes -I$(IDIR) -Wall -O2 -std=gnu++11 $(DEBUG)
 IDIR=.
 
 ODIR=obj
@@ -40,7 +40,7 @@ $(ODIR)/%.o: rippers/%.cpp $(DEPS)
 	$(DIR_GUARD)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-makeTSX: $(OBJ)
+makeTSX.exe: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 .PHONY: clean

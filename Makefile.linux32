@@ -1,10 +1,10 @@
 #
-# Makefile for Linux x64
+# Makefile for Linux x32
 #
 CC=g++
 #DEBUG=-D_DEBUG_
 
-CFLAGS=-static -I./includes -I$(IDIR) -Wall -O2 -std=gnu++11 $(DEBUG)
+CFLAGS=-m32 -static -I./includes -I$(IDIR) -L/usr/lib32/ -Wall -O2 -std=gnu++11 $(DEBUG)
 IDIR=.
 
 ODIR=obj
