@@ -41,7 +41,7 @@ namespace Rippers {
 		MSX4B_Ripper(WAV *wav);
 		MSX4B_Ripper(const MSX4B_Ripper& other);
 		~MSX4B_Ripper();
-		bool detectBlock();
+		bool detectBlock() override;
 	protected:
 		bool  detectSilence(DWORD posIni) override;
 		WORD  calculateBaudRate(DWORD posIni);

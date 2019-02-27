@@ -25,7 +25,7 @@ namespace Rippers {
 		B12_PureTone_Ripper(WAV *wav);
 		B12_PureTone_Ripper(const B12_PureTone_Ripper& other);
 		~B12_PureTone_Ripper();
-		bool detectBlock();
+		bool detectBlock() override;
 	protected:
 		bool detectSilence(DWORD posIni) override;
 		WORD findTone(DWORD posIni);

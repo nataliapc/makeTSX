@@ -75,7 +75,7 @@ void WAV::showInfo()
 	cout << "FmtId:        " << fmt << endl;
 	cout << "FmtSize:      " << header->fmtSize << " bytes" << endl;
 	cout << "FmtTag:       " << header->wFormatTag << endl;
-	cout << "Channels:     " << (header->nChannels==1 ? "mono" : (header->nChannels==2 ? "stereo" : ""+header->nChannels)) << endl;
+	cout << "Channels:     " << (header->nChannels==1 ? "mono" : (header->nChannels==2 ? "stereo" : std::to_string(header->nChannels))) << endl;
 	cout << "SamplesxSec:  " << header->nSamplesPerSec << " Hz" << endl;
 	cout << "AvgBytesxSec: " << header->nAvgBytesPerSec << endl;
 	cout << "BlockAlign:   " << header->nBlockAlign << endl;
@@ -178,7 +178,7 @@ void WAV::normalize()
 			if (v > max && v > 5) { max = v; }
 			if (v < min && v <-5) { min = v; }
 		}
-		min = min;
+		//min = min;
 		for (DWORD i=pos; i<pos+len && i<size; i++) {
 			v = (int16_t)bdata[i] - 0x80;
 			if (v > 0) {

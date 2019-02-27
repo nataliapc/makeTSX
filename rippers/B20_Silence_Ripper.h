@@ -25,7 +25,7 @@ namespace Rippers {
 		B20_Silence_Ripper(WAV *wav);
 		B20_Silence_Ripper(const B20_Silence_Ripper& other);
 		~B20_Silence_Ripper();
-		bool detectBlock();
+		bool detectBlock() override;
 	protected:
 		bool detectSilence(DWORD posIni) override;
 		WORD findGlitches(DWORD posIni);

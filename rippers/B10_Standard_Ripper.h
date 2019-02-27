@@ -30,7 +30,7 @@ namespace Rippers {
 		B10_Standard_Ripper(WAV *wav);
 		B10_Standard_Ripper(const B10_Standard_Ripper& other);
 		~B10_Standard_Ripper();
-		bool detectBlock();
+		bool detectBlock() override;
 	protected:
 		bool  detectSilence(DWORD posIni) override;
 		DWORD checkPilot(DWORD posIni);
