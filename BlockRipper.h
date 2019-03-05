@@ -23,12 +23,12 @@ namespace WAV_Class {
 	#define bytes2tstates(bytes)	((float)bytes*Z80HZ/WAVSampleRate)
 	#define bytes2milis(bytes)		((float)bytes*1000/WAVSampleRate)
 
-	#define WAVTIME(pos)			TXT_CYAN "[" << ((float)samples[std::min((DWORD)pos, (DWORD)(samples.size()-1))]/WAVSampleRate) << "s] " TXT_RESET
+	#define WAVTIME(pos)			TXT_B_BLUE << "[" << ((float)samples[std::min((DWORD)pos, (DWORD)(samples.size()-1))]/WAVSampleRate) << "s] " << TXT_RESET
 	#define ABS(v1,v2)				(std::abs(((float)v1)-((float)v2)))
 
-	#define WARNING					TXT_B_RED "WARNING" TXT_RESET
-	#define SUCCESS					TXT_B_YELLOW "SUCCESS" TXT_RESET
-	#define ERROR					TXT_B_RED "ERROR" TXT_RESET
+	#define MSG_WARNING				TXT_B_RED << "WARNING" << TXT_RESET
+	#define MSG_SUCCESS				TXT_B_YELLOW << "SUCCESS" << TXT_RESET
+	#define MSG_ERROR				TXT_B_RED << "ERROR" << TXT_RESET
 
 
 	class BlockRipper

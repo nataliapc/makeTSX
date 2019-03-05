@@ -2,7 +2,6 @@
 #define __TYPES_H__
 
 #include <stdint.h>
-
 #include "colors.h"
 
 
@@ -34,5 +33,6 @@ typedef uint8_t		BYTE;
 typedef uint16_t	WORD;
 typedef uint24_t	WORD24;
 typedef uint32_t	DWORD;
+
 
 #endif //__TYPES_H__

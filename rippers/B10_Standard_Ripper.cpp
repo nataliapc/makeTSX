@@ -64,7 +64,7 @@ bool B10_Standard_Ripper::detectBlock()
 	DWORD pilots = checkPilot(posIni);
 	if (pilots && !eof(pos+pilots)) {
 
-		cout << WAVTIME(posIni) << "Detected #10 Standard Speed Pilot tone (" << std::dec << pilots << " pulses|speed:x" << modif << ")" << NEXTPULSES4(posIni) << endl;
+		cout << WAVTIME(posIni) << TXT_B_GREEN << "Detected #10 Standard Speed Pilot tone (" << std::dec << pilots << " pulses|speed:x" << modif << ")" << NEXTPULSES4(posIni) << TXT_RESET << endl;
 		posIni += pilots;
 
 		//Check Sync#1
@@ -77,17 +77,17 @@ bool B10_Standard_Ripper::detectBlock()
 			if (ABS(states[posIni]+states[posIni+1], SYNC1_PULSE+SYNC2_PULSE) > (SYNC1_PULSE+SYNC2_PULSE)*customTolerance) {
 				bool ask = false;
 				if (interactiveMode) {
-					cout << WAVTIME(posIni) << WARNING ": Bad SYNC#1 Pulse " << NEXTPULSES2(posIni) << endl;
+					cout << WAVTIME(posIni) << MSG_WARNING << ": Bad SYNC#1 Pulse " << NEXTPULSES2(posIni) << endl;
 					ask = askUserForSyncBits(posIni);
 				}
 				if (!ask) {
 					//If fails return that is not a block #10
-					cout << WAVTIME(posIni) << ERROR << ": Bad SYNC#1 Pulse!" << NEXTPULSES2(posIni) << endl;
+					cout << WAVTIME(posIni) << MSG_ERROR << ": Bad SYNC#1 Pulse!" << NEXTPULSES2(posIni) << endl;
 					return false;
 				}
 			}
 			//SYNC1+SYNC2 is correct, skip SYNC bits
-			cout << WAVTIME(posIni) << WARNING ": Corrected SYNC PULSES (sum are OK)" << NEXTPULSES2(posIni) << endl;
+			cout << WAVTIME(posIni) << MSG_WARNING << ": Corrected SYNC PULSES (sum are OK)" << NEXTPULSES2(posIni) << endl;
 			posIni += 2;
 
 		} else {
@@ -96,7 +96,7 @@ bool B10_Standard_Ripper::detectBlock()
 
 			//Check Sync#2
 			if (!eof(posIni) && ABS(states[posIni], SYNC2_PULSE) > SYNC2_PULSE*0.20f) {
-				cout << WAVTIME(posIni) << WARNING ": Bad SYNC#2 Pulse: Assuming is OK and continue" << NEXTPULSES2(posIni) << endl;
+				cout << WAVTIME(posIni) << MSG_WARNING << ": Bad SYNC#2 Pulse: Assuming is OK and continue" << NEXTPULSES2(posIni) << endl;
 			}
 
 			if (verboseMode) cout << WAVTIME(posIni) << "  SYNC#2 PULSE OK" << NEXTPULSES(posIni) << endl;
@@ -122,13 +122,13 @@ bool B10_Standard_Ripper::detectBlock()
 				lastChksum = chksum;
 				chksum ^= (lastByte & 0xFF);
 			}
-			if (verboseMode) cout << WAVTIME(pos) << std::hex << "Pos:[0x" << buff.size() << "]  Detected BYTE #" << std::hex << value << " (" << std::dec << value << ")" << endl;
+			if (verboseMode) cout << WAVTIME(pos) << std::hex << TXT_B_WHITE << "Pos:[0x" << buff.size() << "] Detected BYTE #" << std::hex << value << " (" << std::dec << value << ")" << TXT_RESET << endl;
 		}
 		cout << WAVTIME(pos) << "Extracted data: " << std::dec << (buff.size()) << " bytes" << endl;
 		if (chksum==lastByte) {
-			cout << WAVTIME(pos) << SUCCESS << ": CHECKSUM OK [0x"<< std::hex << chksum << "]" << endl;
+			cout << WAVTIME(pos) << MSG_SUCCESS << ": CHECKSUM OK [0x"<< std::hex << chksum << "]" << endl;
 		} else {
-			cout << WAVTIME(pos) << ERROR << ": CHECKSUM ERR [0x"<< std::hex << chksum << " but expected 0x" << lastByte << "]" << endl;
+			cout << WAVTIME(pos) << MSG_ERROR << ": CHECKSUM ERR [0x"<< std::hex << chksum << " but expected 0x" << lastByte << "]" << endl;
 		}
 
 /*		//Pulses after data block?
@@ -150,7 +150,7 @@ bool B10_Standard_Ripper::detectBlock()
 							pausems,
 							(char*)buff.data(),
 							buff.size());
-			cout << WAVTIME(pos) << "Adding #10 Standard Speed Data Block" << endl;
+			cout << WAVTIME(pos) << TXT_B_GREEN << "Adding #10 Standard Speed Data Block" << TXT_RESET << endl;
 			return true;
 		}
 	}
@@ -200,17 +200,17 @@ bool B10_Standard_Ripper::checkBit0(DWORD posIni)
  */
 bool B10_Standard_Ripper::askUserForSyncBits(DWORD posIni) {
 	cout << endl <<
-		"   Sync#1  Sync#2  " << endl <<
-		"          _________" << endl <<
-		"         |         " << endl <<
-		"  ''''''''         " << endl;
-	printf("    %3d      %3d", states[posIni], states[posIni+1]);
+		TXT_GREEN << "   Sync#1  Sync#2  " << endl <<
+		             "          _________" << endl <<
+		             "         |         " << endl <<
+		             "  ''''''''         " << TXT_RESET << endl;
+	printf("    %3u      %3u", (uint16_t)states[posIni], (uint16_t)states[posIni+1]);
 
 	char ask;
 	while (1) {
 		cout << endl << endl <<
-			"Sync pulse lengths are out of tolerance limits (values must be Sync#1=8 & Sync#2=9)" << endl <<
-			"Select action (Sync bits are [O]K/[A]bort)? ";
+			TXT_B_WHITE << "Sync pulse lengths are out of tolerance limits (values must be Sync#1=8 & Sync#2=9 samples)" << endl <<
+			TXT_B_YELLOW << "Select action (Sync bits are [O]K/[A]bort)? " << TXT_RESET;
 		cin >> ask;
 		if (ask == 'o' || ask == 'O') return true;
 		if (ask == 'a' || ask == 'A') return false;
@@ -222,23 +222,23 @@ bool B10_Standard_Ripper::askUserForSyncBits(DWORD posIni) {
  */
 BYTE B10_Standard_Ripper::askUserForBitValue(DWORD posIni) {
 	cout << endl <<
-		"Bit 0  ___       Next pulse lengths" << endl <<
-		"      |   " << endl <<
-		"  '''''   " << endl;
-	printf("  %3d %3d        ", states[posIni], states[posIni+1]);
-	for (int i=2; i<16; i++) printf("%3d ", states[posIni+i]);
+		TXT_GREEN << "Bit 0  ___" << endl <<
+		             "      |   " << endl <<
+		             "  '''''          Next pulse lengths (samples/pulse):" << TXT_RESET << endl;
+	printf("  %3u %3u        ", (uint16_t)states[posIni], (uint16_t)states[posIni+1]);
+	for (int i=2; i<16; i++) printf("%3u ", (uint16_t)states[posIni+i]);
 	cout << endl << endl <<
-		"Bit 1    ______  Next pulse lengths" << endl <<
-		"        |      " << endl <<
-		"  '''''''      " << endl;
-	printf("   %3d    %3d    ", states[posIni], states[posIni+1]);
-	for (int i=2; i<16; i++) printf("%3d ", states[posIni+i]);
+		TXT_GREEN << "Bit 1    ______" << endl <<
+		             "        |      " << endl <<
+		             "  '''''''        Next pulse lengths (samples/pulse):" << TXT_RESET << endl;
+	printf("   %3u    %3u    ", (uint16_t)states[posIni], (uint16_t)states[posIni+1]);
+	for (int i=2; i<16; i++) printf("%3u ", (uint16_t)states[posIni+i]);
 
 	char ask;
 	while (1) {
 		cout << endl << endl <<
-			"Some Pulse lengths are out of tolerance limits (0 pulses: "<< (WORD)ZERO_PULSE << ", 1 pulses: "<< (WORD)ONE_PULSE << ")." << endl << 
-			"Select correct bit value from above ([0]/[1]/[A]bort)? ";
+			TXT_B_WHITE << "Some Pulse lengths are out of tolerance limits (0 pulses: "<< (WORD)ZERO_PULSE << " samples, 1 pulses: "<< (WORD)ONE_PULSE << " samples)." << endl << 
+			TXT_B_YELLOW << "Select correct bit value from above ([0]/[1]/[A]bort)? " << TXT_RESET;
 		cin >> ask;
 		if (ask == '0') return 0;
 		if (ask == '1') return 1;
@@ -273,12 +273,12 @@ WORD B10_Standard_Ripper::getByte()
 			//Detect silences in the 4 next pulses
 			BYTE idx = 0;
 			if (detectSilence(posIni) || detectSilence(posIni+(++idx))) {
-				cout << WAVTIME(posIni) << WARNING ": Silence detected. Ending block read..." << NEXTPULSES(posIni) << endl;
+				cout << WAVTIME(posIni) << MSG_WARNING << ": Silence detected. Ending block read..." << NEXTPULSES(posIni) << endl;
 				pos = posIni + idx;
 				return 0xFFFF;
 			}
 
-			cout << WAVTIME(posIni) << WARNING ": Bad/Ambiguous pulse length in BIT #" << (8-i) << NEXTPULSES2(posIni) << endl;
+			cout << WAVTIME(posIni) << MSG_WARNING << ": Bad/Ambiguous pulse length in BIT #" << (8-i) << NEXTPULSES2(posIni) << endl;
 
 			BYTE ask = 0xFF;
 			//Predicting using cycle sum
@@ -288,12 +288,12 @@ WORD B10_Standard_Ripper::getByte()
 				float diff1 = ABS(total, ONE_PULSE*2.f);
 				if (diff0 < diff1) {
 					//It's a Bit 0
-					cout << WAVTIME(posIni) << SUCCESS ": cycle sum closest to BIT #" << (8-i) << " like a 0" << endl;
+					cout << WAVTIME(posIni) << MSG_SUCCESS << ": cycle sum closest to BIT #" << (8-i) << " like a 0" << endl;
 					ask = 0;
 				}
 				if (diff0 > diff1) {
 					//It's a Bit 1
-					cout << WAVTIME(posIni) << SUCCESS ": cycle sum closest to BIT #" << (8-i) << " like a 1" << endl;
+					cout << WAVTIME(posIni) << MSG_SUCCESS << ": cycle sum closest to BIT #" << (8-i) << " like a 1" << endl;
 					ask = 1;
 				}
 			}
@@ -302,7 +302,7 @@ WORD B10_Standard_Ripper::getByte()
 			if (ask == 0xFF && predictiveMode) {
 				if (detectSilence(posIni+2) && bit0) {
 					//It's a Bit 0
-					cout << WAVTIME(posIni) << SUCCESS ": last bit in this block and seems a 0" << NEXTPULSES4(posIni) << endl;
+					cout << WAVTIME(posIni) << MSG_SUCCESS << ": last bit in this block and seems a 0" << NEXTPULSES4(posIni) << endl;
 					ask = 0;
 				}
 			}
@@ -338,7 +338,7 @@ WORD B10_Standard_Ripper::getByte()
 		} else
 		//Unexpected error. Aborting
 		{
-			cout << WAVTIME(posIni) << ERROR << ": Unexpected error! Aborting read..." << endl;
+			cout << WAVTIME(posIni) << MSG_ERROR << ": Unexpected error! Aborting read..." << endl;
 			goto END;
 		}
 		mask >>= 1;

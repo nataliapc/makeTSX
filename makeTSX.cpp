@@ -26,6 +26,7 @@ using namespace TZX_Class;
 using namespace WAV_Class;
 using namespace Rippers;
 
+#define getError() TXT_RED << TXT_BLINK << "[ERROR]" << TXT_RESET
 
 string tsxfile;
 string wavfile;
@@ -192,10 +193,6 @@ void showUsage() {
 	cout << endl;
 }
 
-const char* getError() {
-	return (const char*)(TXT_RED TXT_BLINK "[ERROR]" TXT_RESET);
-}
-
 /**
  * @brief 
  */
@@ -315,8 +312,8 @@ void doWavMode()
 
 	cout << "Detecting pulse lengths..." << endl << endl;
 
-	cout << TXT_GREEN ">>------------------- START RIPPING ---------------------" TXT_RESET << endl;
-	cout << TXT_GREEN ">>------------------- START DETECTING BLOCK" TXT_RESET << endl;
+	cout << TXT_GREEN << ">>------------------- START RIPPING ---------------------" << TXT_RESET << endl;
+	cout << TXT_GREEN << ">>------------------- START DETECTING BLOCK" << TXT_RESET << endl;
 	WORD initialBlocks = tsx->getNumBlocks();
 	while (!sil20->eof()) {
 		// =========================================================
@@ -325,35 +322,35 @@ void doWavMode()
 
 			Block20 *b = (Block20*) sil20->getDetectedBlock();
 			if (tsx->getNumBlocks() == initialBlocks) {
-				if (!msx4b->eof()) cout << TXT_GREEN "<<------------------- SKIP SILENCE: IS FIRST BLOCK" TXT_RESET << endl;
+				if (!msx4b->eof()) cout << TXT_GREEN << "<<------------------- SKIP SILENCE: IS FIRST BLOCK" << TXT_RESET << endl;
 			} else {
 				Block20 *last = (Block20*)tsx->getLastBlock();
 				//Add silence to previous blocks if support it
 				if (last->getId()==0x20) {
 					last->addPause(b->getPause());
-					cout << TXT_GREEN "<<------------------- SILENCE ADDED TO LAST BLOCK" TXT_RESET << endl;
+					cout << TXT_GREEN << "<<------------------- SILENCE ADDED TO LAST BLOCK" << TXT_RESET << endl;
 				} else
 				if (last->getId()==0x4b) {
 					((Block4B*)last)->addPause(b->getPause());
-					cout << TXT_GREEN "<<------------------- SILENCE ADDED TO LAST BLOCK" TXT_RESET << endl;
+					cout << TXT_GREEN << "<<------------------- SILENCE ADDED TO LAST BLOCK" << TXT_RESET << endl;
 				} else
 				if (last->getId()==0x10) {
 					((Block10*)last)->addPause(b->getPause());
-					cout << TXT_GREEN "<<------------------- SILENCE ADDED TO LAST BLOCK" TXT_RESET << endl;
+					cout << TXT_GREEN << "<<------------------- SILENCE ADDED TO LAST BLOCK" << TXT_RESET << endl;
 				} else
 				if (last->getId()==0x11) {
 					((Block11*)last)->addPause(b->getPause());
-					cout << TXT_GREEN "<<------------------- SILENCE ADDED TO LAST BLOCK" TXT_RESET << endl;
+					cout << TXT_GREEN << "<<------------------- SILENCE ADDED TO LAST BLOCK" << TXT_RESET << endl;
 				} else
 				if (last->getId()==0x14) {
 					((Block14*)last)->addPause(b->getPause());
-					cout << TXT_GREEN "<<------------------- SILENCE ADDED TO LAST BLOCK" TXT_RESET << endl;
+					cout << TXT_GREEN << "<<------------------- SILENCE ADDED TO LAST BLOCK" << TXT_RESET << endl;
 				} else {
-					cout << TXT_GREEN "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " SILENCE RIPPED" TXT_RESET << endl;
+					cout << TXT_GREEN << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " SILENCE RIPPED" << TXT_RESET << endl;
 					tsx->addBlock(b);
 				}
 			}
-			if (!sil20->eof()) cout << TXT_GREEN ">>------------------- START DETECTING BLOCK" TXT_RESET << endl;
+			if (!sil20->eof()) cout << TXT_GREEN << ">>------------------- START DETECTING BLOCK" << TXT_RESET << endl;
 
 		} else
 		// =========================================================
@@ -361,9 +358,9 @@ void doWavMode()
 		if (ton12->detectBlock()) {
 
 			Block12 *b = (Block12*) ton12->getDetectedBlock();
-			cout << TXT_GREEN "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " PURE TONE BLOCK RIPPED" TXT_RESET << endl;
+			cout << TXT_GREEN << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " PURE TONE BLOCK RIPPED" << TXT_RESET << endl;
 			tsx->addBlock(b);
-			if (!ton12->eof()) cout << TXT_GREEN ">>------------------- START DETECTING BLOCK" TXT_RESET << endl;
+			if (!ton12->eof()) cout << TXT_GREEN << ">>------------------- START DETECTING BLOCK" << TXT_RESET << endl;
 
 		} else
 		// =========================================================
@@ -371,9 +368,9 @@ void doWavMode()
 		if (std10->detectBlock()) {
 
 			Block10 *b = (Block10*) std10->getDetectedBlock();
-			cout << TXT_GREEN "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " STANDARD SPEED BLOCK RIPPED" TXT_RESET << endl;
+			cout << TXT_GREEN << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " STANDARD SPEED BLOCK RIPPED" << TXT_RESET << endl;
 			tsx->addBlock(b);
-			if (!std10->eof()) cout << TXT_GREEN ">>------------------- START DETECTING BLOCK" TXT_RESET << endl;
+			if (!std10->eof()) cout << TXT_GREEN << ">>------------------- START DETECTING BLOCK" << TXT_RESET << endl;
 
 		} else
 		// =========================================================
@@ -381,7 +378,7 @@ void doWavMode()
 		if (msx4b->detectBlock()) {
 			
 			Block4B *b = (Block4B*) msx4b->getDetectedBlock();
-			cout << TXT_GREEN "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " MSX KCS RIPPED" TXT_RESET << endl;
+			cout << TXT_GREEN << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " MSX KCS RIPPED" << TXT_RESET << endl;
 			//If first 4B block we must add a 0x35 block
 			if (b->getId()==0x4b && !msxload) {
 				if (b->getFileType() != 0xff) {
@@ -391,7 +388,7 @@ void doWavMode()
 			}
 			//Add the block
 			tsx->addBlock(b);
-			if (!msx4b->eof()) cout << TXT_GREEN ">>------------------- START DETECTING BLOCK" TXT_RESET << endl;
+			if (!msx4b->eof()) cout << TXT_GREEN << ">>------------------- START DETECTING BLOCK" << TXT_RESET << endl;
 
 		} else
 		// =========================================================
@@ -443,7 +440,7 @@ void doWavMode()
 
 	//Save TSX file
 	tsx->saveToFile(tsxfile);
-	cout << TXT_GREEN "<<------------------- END RIPPING ----------------------" TXT_RESET << endl;
+	cout << TXT_GREEN << "<<------------------- END RIPPING ----------------------" << TXT_RESET << endl;
 
 	exit(0);
 }

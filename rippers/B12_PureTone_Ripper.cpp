@@ -70,7 +70,7 @@ bool B12_PureTone_Ripper::detectBlock()
 	pulses = findTone(posIni);
 	if (pulses) {
 		tstates = bytes2tstates(pulseLen);
-		cout << WAVTIME(posIni) << "Detected #12 Pure Tone Block ("<< std::dec << pulses << " pulses / " << tstates << " T-states each)" << endl;
+		cout << WAVTIME(posIni) << TXT_B_GREEN << "Detected #12 Pure Tone Block ("<< std::dec << pulses << " pulses / " << tstates << " T-states each)" << TXT_RESET << endl;
 		posIni += pulses;
 	}
 
@@ -78,7 +78,7 @@ bool B12_PureTone_Ripper::detectBlock()
 
 	//If pulses then add silence block
 	if (pulses) {
-		cout << WAVTIME(pos) << "Adding #12 Pure Tone Block" << endl;
+		cout << WAVTIME(pos) << TXT_B_GREEN << "Adding #12 Pure Tone Block" << TXT_RESET << endl;
 		block = new Block12(tstates, pulses);
 		return true;
 	}

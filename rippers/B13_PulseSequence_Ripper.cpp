@@ -44,8 +44,8 @@ bool B13_PulseSequence_Ripper::detectBlock()
 
 	//If pulses then add silence block
 	if (pulses.size() >= 1) {
-		cout << WAVTIME(pos) << "Detected #13 Pulse Sequence Block ("<< std::dec << pulses.size() << " pulses)" << endl;
-		cout << WAVTIME(posIni) << "Adding #13 Pulse Sequence Block" << endl;
+		cout << WAVTIME(pos) << TXT_B_GREEN << "Detected #13 Pulse Sequence Block ("<< std::dec << pulses.size() << " pulses)" << TXT_RESET << endl;
+		cout << WAVTIME(posIni) << TXT_B_GREEN << "Adding #13 Pulse Sequence Block" << TXT_RESET << endl;
 		pos = posIni;
 		block = new Block13(pulses.size(), pulses.data());
 		return true;

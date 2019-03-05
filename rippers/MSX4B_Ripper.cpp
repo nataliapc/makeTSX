@@ -51,9 +51,9 @@ bool MSX4B_Ripper::detectBlock()
 		WORD roundedBauds = bauds;
 		if (ABS(bauds, 1200) < 15) roundedBauds = 1200;
 		if (ABS(bauds, 2400) < 15) roundedBauds = 2400;
-		cout << WAVTIME(pos) << "Detected #4B MSX Pilot tone (" << std::dec << bauds << " bauds)" << endl;
+		cout << WAVTIME(pos) << TXT_B_GREEN << "Detected #4B MSX Pilot tone (" << std::dec << bauds << " bauds)" << TXT_RESET << endl;
 		if (bauds != roundedBauds) {
-			cout << WAVTIME(pos) << WARNING ": No standard baudrate!" << endl;
+			cout << WAVTIME(pos) << MSG_WARNING << ": No standard baudrate!" << endl;
 		}
 		blockInfo.pilot = MSX_PULSE(bauds);
 		blockInfo.bit1len = MSX_PULSE(bauds);
@@ -71,7 +71,7 @@ bool MSX4B_Ripper::detectBlock()
 		pos = posIni;
 		cout << WAVTIME(pos) << "Header pulses: " << std::dec << blockInfo.pulses << " in " << headerSecs << " seconds" << NEXTPULSES(pos) << endl;
 		if (blockInfo.pulses < 2500) {
-			cout << WAVTIME(pos) << WARNING ": Detected header with very few pulses... " << endl;
+			cout << WAVTIME(pos) << MSG_WARNING << ": Detected header with very few pulses... " << endl;
 		}
 
 		//Get Data bytes
@@ -80,7 +80,7 @@ bool MSX4B_Ripper::detectBlock()
 		while (!eof()) {
 			value = getByte();
 			if (value==0xFFFF) break;
-			if (verboseMode) cout << WAVTIME(pos) << std::hex << "Pos:[0x" << buff.size() << "]  Detected BYTE #" << std::hex << value << " (" << std::dec << value << ")" << endl;
+			if (verboseMode) cout << WAVTIME(pos) << std::hex << TXT_B_WHITE << "Pos:[0x" << buff.size() << "] Detected BYTE #" << std::hex << value << " (" << std::dec << value << ")" << TXT_RESET << endl;
 			buff.push_back(value);
 		}
 		cout << WAVTIME(pos) << "Extracted data: " << (buff.size()) << " bytes" << endl;
@@ -89,7 +89,7 @@ bool MSX4B_Ripper::detectBlock()
 		posIni = pos;
 		WORD pulsesAfterData = skipToNextSilence();
 		if (pulsesAfterData > 0) {
-			cout << WAVTIME(posIni) << WARNING ": Skipping " << (pos-posIni) << " pulses after data block for "<< std::dec << (pulsesAfterData/(float)WAVSampleRate) << "sec" << endl;
+			cout << WAVTIME(posIni) << MSG_WARNING << ": Skipping " << (pos-posIni) << " pulses after data block for "<< std::dec << (pulsesAfterData/(float)WAVSampleRate) << "sec" << endl;
 		}
 
 		//Pause after data in ms
@@ -111,7 +111,7 @@ bool MSX4B_Ripper::detectBlock()
 							blockInfo.bytecfg,
 							(char*)buff.data(),
 							buff.size());
-			cout << WAVTIME(pos) << "Adding #4B MSX Block" << endl;
+			cout << WAVTIME(pos) << TXT_B_GREEN << "Adding #4B MSX Block" << TXT_RESET << endl;
 			return true;
 		}
 	}
@@ -231,23 +231,23 @@ DWORD MSX4B_Ripper::predictiveBitsForward(DWORD posIni, int8_t currentBit, bool 
  */
 BYTE MSX4B_Ripper::askUserForBitValue(DWORD posIni) {
 	cout << endl <<
-		"Bit 0    ______     Next pulse lengths" << endl <<
-		"        |      " << endl <<
-		"  '''''''      " << endl;
-	printf("   %3d    %3d      ", states[posIni], states[posIni+1]);
-	for (int i=2; i<16; i++) printf("%3d ", states[posIni+i]);
+		TXT_GREEN << "Bit 0     _______" << endl <<
+		             "         |       " << endl <<
+		             "  ''''''''         Next pulse lengths (samples/pulse):" << TXT_RESET << endl;
+	printf("   %3u    %3u      ", (uint16_t)states[posIni], (uint16_t)states[posIni+1]);
+	for (int i=2; i<16; i++) printf("%3u ", (uint16_t)states[posIni+i]);
 	cout << endl << endl <<
-		"Bit 1 ___     ___   Next pulse lengths" << endl <<
-		"     |   |   |   " << endl <<
-		"  ''''   '''''   " << endl;
-	printf("  %3d %3d %3d %3d  ", states[posIni], states[posIni+1], states[posIni+2], states[posIni+3]);
-	for (int i=4; i<18; i++) printf("%3d ", states[posIni+i]);
+		TXT_GREEN << "Bit 1 ___     ___" << endl <<
+		             "     |   |   |   " << endl <<
+		             "  ''''   '''''     Next pulse lengths (samples/pulse):" << TXT_RESET << endl;
+	printf("  %3u %3u %3u %3u  ", (uint16_t)states[posIni], (uint16_t)states[posIni+1], (uint16_t)states[posIni+2], (uint16_t)states[posIni+3]);
+	for (int i=4; i<18; i++) printf("%3u ", (uint16_t)states[posIni+i]);
 
 	char ask;
 	while (1) {
 		cout << endl << endl <<
-			"Some Pulse lengths are out of tolerance limits (single pulse: "<< (WORD)ONE_PULSE << ", double: "<< (WORD)ZERO_PULSE << ")." << endl << 
-			"Select correct bit value from above ([0]/[1]/[A]bort)? ";
+			TXT_B_WHITE << "Some Pulse lengths are out of tolerance limits (single pulse: "<< (WORD)ONE_PULSE << " samples, double: "<< (WORD)ZERO_PULSE << " samples)." << endl << 
+			TXT_B_YELLOW << "Select correct bit value from above ([0]/[1]/[A]bort)? " << TXT_RESET;
 		cin >> ask;
 		if (ask == '0') return 0;
 		if (ask == '1') return 1;
@@ -284,7 +284,7 @@ WORD MSX4B_Ripper::getByte()
 		}
 
 		if (!predictive0) {
-			cout << WAVTIME(posIni) << WARNING ": Bad start bit: Assuming 0 and continue..." << endl;
+			cout << WAVTIME(posIni) << MSG_WARNING << ": Bad start bit: Assuming 0 and continue..." << endl;
 		}
 
 		bitLen0 = 2;
@@ -307,7 +307,7 @@ WORD MSX4B_Ripper::getByte()
 				return 0xFFFF;
 			}
 
-			cout << WAVTIME(posIni) << WARNING ": Bad/Ambiguous pulse length in BIT #" << (i+1) << NEXTPULSES(posIni) << endl;
+			cout << WAVTIME(posIni) << MSG_WARNING << ": Bad/Ambiguous pulse length in BIT #" << (i+1) << NEXTPULSES(posIni) << endl;
 			BYTE ask = 0xFF;
 			//Predictive Bits Forward
 			predictive0 = predictive1 = false;
@@ -338,7 +338,7 @@ WORD MSX4B_Ripper::getByte()
 			} else {
 				if (predictive0) ask = 0;
 				if (predictive1) ask = 1;
-				cout << WAVTIME(posIni) << SUCCESS << ": Predictive Bits Forward: Solved using BIT #" << (i+1) << " like a " << (ask ? "1" : "0") << endl;
+				cout << WAVTIME(posIni) << MSG_SUCCESS << ": Predictive Bits Forward: Solved using BIT #" << (i+1) << " like a " << (ask ? "1" : "0") << endl;
 			}
 
 			//Set predictive/interactive result to the Bit
@@ -372,11 +372,11 @@ WORD MSX4B_Ripper::getByte()
 	if (!(bitLen1=checkBit1(posIni))) {
 		BYTE idx = 0;
 		if (detectSilence(posIni) || detectSilence(posIni+(++idx)) || detectSilence(posIni+(++idx)) || detectSilence(posIni+(++idx))) {
-			cout << WAVTIME(posIni) << WARNING ": Bad 1st stop bit: Silence detected. Ending block read..." << NEXTPULSES(posIni) << endl;
+			cout << WAVTIME(posIni) << MSG_WARNING << ": Bad 1st stop bit: Silence detected. Ending block read..." << NEXTPULSES(posIni) << endl;
 			pos = posIni + idx;
 			return 0xFFFF;
 		}
-		cout << WAVTIME(posIni) << WARNING ": Bad 1st stop bit. Assuming value 1 and continue..." << NEXTPULSES(posIni) << endl;
+		cout << WAVTIME(posIni) << MSG_WARNING << ": Bad 1st stop bit. Assuming value 1 and continue..." << NEXTPULSES(posIni) << endl;
 		bitLen1 = 4;
 	}
 	if (verboseMode) cout << WAVTIME(posIni) << "  STOP BIT #1: 1" << NEXTPULSES(posIni) << endl;
@@ -387,11 +387,11 @@ WORD MSX4B_Ripper::getByte()
 	if (!(bitLen1=checkBit1(posIni))) {
 		BYTE idx = 0;
 		if (detectSilence(posIni) || detectSilence(posIni+(++idx)) || detectSilence(posIni+(++idx)) || detectSilence(posIni+(++idx))) {
-			cout << WAVTIME(posIni) << WARNING ": Bad 2nd stop bit: Silence detected..." << NEXTPULSES(posIni) << endl;
+			cout << WAVTIME(posIni) << MSG_WARNING << ": Bad 2nd stop bit: Silence detected..." << NEXTPULSES(posIni) << endl;
 			posIni += idx;
 			goto END;
 		}
-		cout << WAVTIME(posIni) << WARNING ": Bad 2nd stop bit. Assuming value 1 and continue..." << NEXTPULSES(posIni) << endl;
+		cout << WAVTIME(posIni) << MSG_WARNING << ": Bad 2nd stop bit. Assuming value 1 and continue..." << NEXTPULSES(posIni) << endl;
 		bitLen1 = 4;
 	}
 	if (verboseMode) cout << WAVTIME(posIni) << "  STOP BIT #2: 1" << NEXTPULSES(posIni) << endl;

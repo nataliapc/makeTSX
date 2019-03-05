@@ -14,7 +14,9 @@ DIR_GUARD=@mkdir -p $(@D)
 
 LIBS=-lm
 
-_DEPS = makeTSX.h TZX.h TZX_Blocks.h WAV.h BlockRipper.h ByteBuffer.h includes/types.h \
+_DEPS = makeTSX.h TZX.h TZX_Blocks.h WAV.h \
+		BlockRipper.h ByteBuffer.h \
+		includes/types.h includes/colors.h \
 		rippers/MSX4B_Ripper.h \
 		rippers/Opera4B_Ripper.h \
 		rippers/B10_Standard_Ripper.h \

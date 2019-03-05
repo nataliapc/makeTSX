@@ -67,7 +67,7 @@ bool B20_Silence_Ripper::detectBlock()
 
 	//If > 0 ms then add silence block
 	if (silence*1000/WAVSampleRate > 0) {
-		cout << WAVTIME(posAux) << "Detected #20 Silence Block ("<< std::dec << (silence/(float)WAVSampleRate) << "sec)" << endl;
+		cout << WAVTIME(posAux) << TXT_B_GREEN << "Detected #20 Silence Block ("<< std::dec << (silence/(float)WAVSampleRate) << "sec)" << TXT_RESET << endl;
 		block = new Block20(silence*1000/WAVSampleRate);
 		return true;
 	}

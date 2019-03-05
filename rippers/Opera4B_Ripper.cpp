@@ -40,9 +40,9 @@ bool Opera4B_Ripper::detectBlock()
 		WORD roundedBauds = bauds;
 		if (ABS(bauds, 1200) < 15) roundedBauds = 1200;
 		if (ABS(bauds, 2400) < 15) roundedBauds = 2400;
-		cout << WAVTIME(pos) << "Detected #4B Opera Block (" << std::dec << bauds << " bauds)" << endl;
-		if (bauds == roundedBauds) {
-			cout << WAVTIME(pos) << WARNING ": No standard baudrate!" << endl;
+		cout << WAVTIME(pos) << TXT_B_GREEN << "Detected #4B Opera Block (" << std::dec << bauds << " bauds)" << TXT_RESET << endl;
+		if (bauds != roundedBauds) {
+			cout << WAVTIME(pos) << MSG_WARNING << ": No standard baudrate!" << endl;
 		}
 		blockInfo.pilot = 0;
 		blockInfo.pulses = 0;
@@ -65,7 +65,7 @@ bool Opera4B_Ripper::detectBlock()
 		posIni = pos;
 		WORD pulsesAfterData = skipToNextSilence();
 		if (pulsesAfterData > 0) {
-			cout << WAVTIME(posIni) << WARNING ": Skipping " << (pos-posIni) << " pulses after data block for "<< std::dec << (pulsesAfterData/(float)WAVSampleRate) << "sec" << endl;
+			cout << WAVTIME(posIni) << MSG_WARNING << ": Skipping " << (pos-posIni) << " pulses after data block for "<< std::dec << (pulsesAfterData/(float)WAVSampleRate) << "sec" << endl;
 		}
 
 		//Pause after data in ms
@@ -87,7 +87,7 @@ bool Opera4B_Ripper::detectBlock()
 							blockInfo.bytecfg,
 							(char*)buff.data(),
 							buff.size());
-			cout << WAVTIME(pos) << "Adding #4B Opera Block" << endl;
+			cout << WAVTIME(pos) << TXT_B_GREEN << "Adding #4B Opera Block" << TXT_RESET << endl;
 			return true;
 		}
 	}
@@ -127,12 +127,12 @@ WORD Opera4B_Ripper::getByte()
 	if (ABS(states[pos-1], ZERO_PULSE) <= ZERO_PULSE*WINDOW &&
 		ABS(states[pos], ZERO_PULSE) <= ZERO_PULSE*WINDOW) {
 		pos--;
-		cout << WAVTIME(pos) << WARNING ": Adjusting 1 pulse backward!" << endl;
+		cout << WAVTIME(pos) << MSG_WARNING << ": Adjusting 1 pulse backward!" << endl;
 	} else
 	if (ABS(states[pos], ONE_PULSE) <= ONE_PULSE*WINDOW &&
 		ABS(states[pos+1], ZERO_PULSE) <= ZERO_PULSE*WINDOW) {
 		pos++;
-		cout << WAVTIME(pos) << WARNING ": Adjusting 1 pulse forward!" << endl;
+		cout << WAVTIME(pos) << MSG_WARNING << ": Adjusting 1 pulse forward!" << endl;
 	}
 
 	return value;
