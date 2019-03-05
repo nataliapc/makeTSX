@@ -2,7 +2,7 @@
 # Makefile to compile all versions
 #
 
-.PHONY: all
+.PHONY: all clean
 
 all: compileAll
 
@@ -19,3 +19,6 @@ compileAll:
 	@echo ================================ Win32
 	@make -f Makefile.win32 clean
 	@make -f Makefile.win32 -j all
+
+clean:
+	rm -f obj/*.o *~ core $(IDIR)/*~

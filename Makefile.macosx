@@ -2,6 +2,7 @@
 # Makefile for MacOSX
 #
 CC=clang++
+OUTFILE = makeTSX_macosx
 #DEBUG=-D_DEBUG_
 
 CFLAGS=-I./includes -I$(IDIR) -Wall -O2 -std=c++11 $(DEBUG)
@@ -50,7 +51,7 @@ $(ODIR)/%.o: rippers/%.cpp $(DEPS)
 	$(DIR_GUARD)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-makeTSX_macosx: $(OBJ)
+$(OUTFILE): $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 clean:
