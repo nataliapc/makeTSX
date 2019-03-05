@@ -34,6 +34,10 @@ _OBJ =	makeTSX.o ByteBuffer.o TZX.o TZX_Blocks.o WAV.o BlockRipper.o \
 		B20_Silence_Ripper.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
+.PHONY: clean all
+
+all: $(OUTFILE)
+
 $(ODIR)/%.o: %.c $(DEPS)
 	$(DIR_GUARD)
 	$(CC) -c -o $@ $< $(CFLAGS)
@@ -48,8 +52,6 @@ $(ODIR)/%.o: rippers/%.cpp $(DEPS)
 
 makeTSX_macosx: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
-
-.PHONY: clean
 
 clean:
 	rm -f $(ODIR)/*.o *~ core $(IDIR)/*~

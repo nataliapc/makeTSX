@@ -35,7 +35,9 @@ _OBJ =	makeTSX.o ByteBuffer.o TZX.o TZX_Blocks.o WAV.o BlockRipper.o \
 		B20_Silence_Ripper.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
-.PHONY: clean
+.PHONY: clean all
+
+all: $(OUTFILE)
 
 $(ODIR)/%.o: %.c $(DEPS)
 	$(DIR_GUARD)
