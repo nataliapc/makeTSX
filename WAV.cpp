@@ -128,6 +128,9 @@ bool WAV::loadFromFile(string filename)
 			ifs.read((char *)&value16, sizeof(int16_t));
 			data[i] = (value16/256 - 0x80) & 0xFF;
 		}
+	} else {
+		cout << "Only supported 8/16 bits WAVs...";
+		return false;
 	}
 
 	if (phase) {
@@ -166,7 +169,7 @@ void WAV::normalize()
 {
 	BYTE* bdata = reinterpret_cast<BYTE*>(data);
 	DWORD  pos = 0;
-	DWORD  len = header->nSamplesPerSec * 5 / 1000;		//Segmentos de 10ms
+	DWORD  len = header->nSamplesPerSec * 0.25f / 1000;		//Segmentos de 2ms
 	int16_t min, max;
 	int16_t v;
 
@@ -178,7 +181,6 @@ void WAV::normalize()
 			if (v > max && v > 5) { max = v; }
 			if (v < min && v <-5) { min = v; }
 		}
-		//min = min;
 		for (DWORD i=pos; i<pos+len && i<size; i++) {
 			v = (int16_t)bdata[i] - 0x80;
 			if (v > 0) {
@@ -214,139 +216,3 @@ void WAV::envelopeCorrection()
 							2.0f * (float)data[i+1]) / 3.5f);
 	}
 }
-
-/*
-public class WAV {
-
-    // ============================================================================================
-    // Constantes
-
-    // ============================================================================================
-    // Variables
-
-    int avgHigh;
-    int avgZero;
-    int avgLow;
-    int maxValue;
-    int minValue;
-
-    // ============================================================================================
-    // Constructores
-
-    private void checkLevels() {
-        int[] values = new int[256];
-        maxValue = minValue = 0;
-        for (int i=0; i<data.length; i++) {
-            values[data[i]&0xff]++;
-            if (data[i]>maxValue) maxValue = data[i];
-            if (data[i]<minValue) minValue = data[i];
-        }
-
-        BigInteger sum, num;
-        sum = BigInteger.valueOf(0);
-        num = BigInteger.valueOf(0);
-        for (int i=0; i<90; i++) {
-            num = num.add(BigInteger.valueOf(values[i]));
-            sum = sum.add(BigInteger.valueOf(values[i]).multiply(BigInteger.valueOf(i)));
-//System.out.println("["+i+"]: "+values[i]);
-        }
-        avgLow = num.intValue()==0 ? 255 : sum.divide(num).intValue();
-
-        sum = BigInteger.valueOf(0);
-        num = BigInteger.valueOf(0);
-        for (int i=90; i<166; i++) {
-            num = num.add(BigInteger.valueOf(values[i]));
-            sum = sum.add(BigInteger.valueOf(values[i]).multiply(BigInteger.valueOf(i)));
-//System.out.println("["+i+"]: "+values[i]);
-        }
-        avgZero = num.intValue()==0 ? 128 : sum.divide(num).intValue();
-
-        sum = BigInteger.valueOf(0);
-        num = BigInteger.valueOf(0);
-        for (int i=166; i<256; i++) {
-            num = num.add(BigInteger.valueOf(values[i]));
-            sum = sum.add(BigInteger.valueOf(values[i]).multiply(BigInteger.valueOf(i)));
-//System.out.println("["+i+"]: "+values[i]);
-        }
-        avgHigh = num.intValue()==0 ? 0 : sum.divide(num).intValue();
-    }
-
-    // ============================================================================================
-    // Getters / Setters
-
-    public int getAvgHigh() {
-        return avgHigh;
-    }
-
-    public int getAvgZero() {
-        return avgZero;
-    }
-
-    public int getAvgLow() {
-        return avgLow;
-    }
-
-    // ============================================================================================
-    // Public interface
-
-    public void correctEnvelope()
-    {
-        final int desviacion = 40;
-        int avg;
-        for (int i=1; i<data.length-1; i++) {
-            avg = (data[i - 1] + data[i] + data[i + 1]) / 3;
-            if (Math.abs(avg - data[i - 1]) < desviacion && Math.abs(avg - data[i]) < desviacion && Math.abs(avg - data[i + 1]) < desviacion) {
-                data[i - 1] = data[i] = data[i + 1] = (byte) avg;
-            }
-        }
-        for (int i=1; i<data.length-1; i++) {
-            data[i] = (byte)((0.5f * (float)data[i-1] +
-                              1.0f * (float)data[i] +
-                              2.0f * (float)data[i+1]) / 3.5f);
-        }
-    }
-
-    // ============================================================================================
-    // Detect blocks
-
-    public static final int THRESHOLD_SILENCE = 100;
-
-    public void detectBlocks() {
-        TZX tzx = new TZX();
-        int threshold = 5;
-        int idx = 1, iaux;
-
-        System.out.println("Decoding audio data...");
-
-        if (isSilence(idx, threshold)) {
-            System.out.printf("[%.4f sec] Silence start", (float)idx/header.nSamplesPerSec);
-            idx = skipSilence(idx, threshold);
-            System.out.printf("[%.4f sec] Silence end", (float)idx/header.nSamplesPerSec);
-        }
-        while (idx<data.length) {
-            idx++;
-        }
-    }
-
-    public boolean isSilence(int index, int threshold)
-    {
-        int silent=0;
-
-        while (index < data.length && silent<THRESHOLD_SILENCE) {
-            if (data[index] >= threshold || data[index] <= -threshold ) return false;
-            silent++;
-            index++;
-        }
-        return true;
-    }
-
-    public int skipSilence(int index, int threshold)
-    {
-        while (index < data.length && (data[index] <= threshold && data[index] >= -threshold )) {
-            index++;
-        }
-        return index;
-    }
-
-}
-*/

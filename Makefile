@@ -1,18 +1,19 @@
 #
 # Makefile for Linux x64
 #
-CC=g++
-#DEBUG=-D_DEBUG_
+CC = g++
+OUTFILE = makeTSX
+#DEBUG = -D_DEBUG_
 
-CFLAGS=-static -I./includes -I$(IDIR) -Wall -O2 -std=gnu++11 $(DEBUG)
-IDIR=.
+CFLAGS = -m64 -static -static-libgcc -static-libstdc++ -I./includes -I$(IDIR) -Wall -O2 -std=gnu++11 $(DEBUG)
+IDIR = .
 
-ODIR=obj
-DIR_GUARD=@mkdir -p $(@D)
+ODIR = obj
+DIR_GUARD = @mkdir -p $(@D)
 
-#LDIR =./lib
+#LDIR = ./lib
 
-LIBS=-lm
+LIBS = -lm
 
 _DEPS = makeTSX.h TZX.h TZX_Blocks.h WAV.h BlockRipper.h ByteBuffer.h includes/types.h \
 		rippers/MSX4B_Ripper.h \
@@ -28,6 +29,8 @@ _OBJ =	makeTSX.o ByteBuffer.o TZX.o TZX_Blocks.o WAV.o BlockRipper.o \
 		B20_Silence_Ripper.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
+.PHONY: clean
+
 $(ODIR)/%.o: %.c $(DEPS)
 	$(DIR_GUARD)
 	$(CC) -c -o $@ $< $(CFLAGS)
@@ -40,10 +43,8 @@ $(ODIR)/%.o: rippers/%.cpp $(DEPS)
 	$(DIR_GUARD)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-makeTSX: $(OBJ)
+$(OUTFILE): $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
-
-.PHONY: clean
 
 clean:
 	rm -f $(ODIR)/*.o *~ core $(IDIR)/*~

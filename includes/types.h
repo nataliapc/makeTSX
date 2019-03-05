@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+#include "colors.h"
+
+
+
 #ifndef uint24_t
 struct uint24_t {
 	uint32_t value : 24;

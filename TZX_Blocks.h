@@ -22,6 +22,7 @@ namespace TZX_Blocks
 
 		size_t	getSize();
 		BYTE	getId();
+		BYTE	getHeadSize();
 		const char* getBytes();
 		void	hexDump();
 		void	hexCharDump();
@@ -30,7 +31,7 @@ namespace TZX_Blocks
 		Block& operator=(const Block &);
 
 	protected:
-		void	init(BYTE, char*, size_t);
+		void	init(BYTE, BYTE, char*, size_t);
 		void	putByte(BYTE);
 		void	putWord(WORD);
 		void	putWord24(WORD24);
@@ -43,7 +44,8 @@ namespace TZX_Blocks
 	protected:
 		ByteBuffer	*bytes;
 	private:
-		BYTE		id;
+		BYTE	id;
+		BYTE	headSize;	//Header size before block data (if any)
 	};
 
 	// ============================================================================================
@@ -362,8 +364,8 @@ namespace TZX_Blocks
 	//	0x08	-	WORD		Number of pulses in the PILOT tone
 	//	0x0A	-	WORD		Duration of a ZERO pulse in T-states
 	//	0x0C	-	WORD		Duration of a ONE pulse in T-states
-	//	0x0E	-	BYTE		Bits 7-4: Number of ZERO pulses in a ZERO bit (0-16) {4}
-	//			 (bitmapped)	Bits 3-0: Number of ONE pulses in a ONE bit (0-16) {8}
+	//	0x0E	-	BYTE		Bits 7-4: Number of ZERO pulses in a ZERO bit (0-16) {2}
+	//			 (bitmapped)	Bits 3-0: Number of ONE pulses in a ONE bit (0-16) {4}
 	//	0x0F	-	BYTE		Bits 7-6: Numbers of leading bits {1}
 	//			 (bitmapped)	Bit 5: Value of leading bits {0}
 	//							Bits 4-3: Number of trailing bits {2}

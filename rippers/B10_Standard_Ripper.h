@@ -18,11 +18,11 @@ namespace Rippers {
 	 * 
 	 * Class to detect Block #10
 	 * 
-	 * PILOT Pulse:		2168 Tstates (27.316 bytes @8bits:44100Hz) 8063/3223 pulses
-	 * SYNC#1 Pulse:	 667 Tstates ( 8.404 bytes @8bits:44100Hz)
-	 * SYNC#2 Pulse:	 735 Tstates ( 9.261 bytes @8bits:44100Hz)
-	 * ZERO bit Pulse:	 855 Tstates (10.773 bytes @8bits:44100Hz)
-	 * ONE bit Pulse:	1710 Tstates (21.546 bytes @8bits:44100Hz)
+	 * PILOT Pulse:		2168 Tstates (27.316/29.732 bytes @8bits:44k1/48kHz) 8063/3223 pulses
+	 * SYNC#1 Pulse:	 667 Tstates ( 8.404/ 9.147 bytes @8bits:44k1/48kHz)
+	 * SYNC#2 Pulse:	 735 Tstates ( 9.261/10.080 bytes @8bits:44k1/48kHz)
+	 * ZERO bit Pulse:	 855 Tstates (10.773/12.137 bytes @8bits:44k1/48kHz)
+	 * ONE bit Pulse:	1710 Tstates (21.546/23,451 bytes @8bits:44k1/48kHz)
 	 */
 	class B10_Standard_Ripper : public BlockRipper
 	{
@@ -43,6 +43,7 @@ namespace Rippers {
 
 	protected:
 		const static DWORD THRESHOLD_PILOT = 5;
+		float modif;
 	};
 
 }

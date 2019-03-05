@@ -31,9 +31,10 @@ Block::~Block()
 	delete bytes;
 }
 
-void Block::init(BYTE blockId, char *data, size_t size)
+void Block::init(BYTE blockId, BYTE hsize, char *data, size_t size)
 {
 	id = blockId;
+	headSize = hsize;
 	bytes = new ByteBuffer((char*)data, size + 1);
 	bytes->SetEndian(ORDER_LITTLE_ENDIAN);
 	putByte(blockId);
@@ -50,6 +51,11 @@ size_t Block::Block::getSize()
 BYTE Block::getId()
 {
 	return id;
+}
+
+BYTE Block::getHeadSize()
+{
+	return headSize;
 }
 
 const char* Block::getBytes()
@@ -69,37 +75,42 @@ void Block::hexDump()
 void Block::hexCharDump()
 {
 	DWORD pos = 0;
-	BYTE cnt = 0, c;
+	BYTE c;
 	while (true) {
 		//Position
-		cout << "#" << std::setfill ('0') << std::setw(4) << std::hex << pos << "  ";
+		cout << TXT_YELLOW << "#" << std::setfill ('0') << std::setw(4) << std::hex << pos << TXT_RESET << "  ";
 		//Hex
 		bytes->Seek(pos);
-		cnt = 16;
-		while (cnt--) {
+		if (pos < getHeadSize()) cout << TXT_B_GREEN;
+		for (int cnt=0; cnt<16; cnt++) {
 			if (bytes->isEOF()) {
 				cout << "   ";
 			} else {
+				if (pos+cnt >= getHeadSize()) cout << TXT_RESET;
 				cout << std::setfill ('0') << std::setw(2) << std::hex << (int)bytes->ReadUByte() << " ";
 			}
 		}
 		//Chars
 		bytes->Seek(pos);
 		cout << "  ";
-		cnt = 16;
-		while (cnt--) {
+		if (pos < getHeadSize()) cout << TXT_B_GREEN;
+		for (int cnt=0; cnt<16; cnt++) {
 			if (bytes->isEOF()) {
 				cout << " ";
 			} else {
+				if (pos+cnt >= getHeadSize()) cout << TXT_RESET;
 				c = bytes->ReadUByte();
 				if (c<32 || c>126) c='.';
 				cout << (char)c;
 			}
 		}
+		cout << TXT_RESET;
 		//Next line
 		cout << endl;
 		pos += 16;
-		if (bytes->isEOF()) return;
+		if (bytes->isEOF()) {
+			return;
+		}
 	}
 }
 
@@ -108,7 +119,7 @@ string Block::toString()
 	std::stringstream stream;
 
 	bytes->Seek(0);
-	stream << "Block #" << std::hex << (int)getId();
+	stream << TXT_B_BLUE << "Block #" << std::hex << (int)getId() << std::dec << TXT_RESET;
 
 	std::string result(stream.str());
 	return result;
@@ -169,7 +180,7 @@ void Block::put(ByteBuffer *buff) {
 
 Block10::Block10(WORD pause, char *data, size_t size)
 {
-	init(0x10, NULL, 4 + size*sizeof(BYTE));
+	init(0x10, 0x05, NULL, 4 + size*sizeof(BYTE));
 	putWord(pause);
 	putWord(size);
 	put(data, size);
@@ -182,7 +193,7 @@ Block10::Block10(istream &is)
 	aux->Seek(2);
 	int len = aux->ReadUInt16() * sizeof(BYTE);
 
-	init(0x10, NULL, 4 + len);
+	init(0x10, 0x05, NULL, 4 + len);
 	put(aux);
 	delete aux;
 
@@ -229,7 +240,7 @@ string Block10::toString()
 
 Block11::Block11(WORD pilotlen, WORD synclen1, WORD synclen2, WORD bit0len, WORD bit1len, WORD pilotnum, BYTE rbits, WORD pause, char *data, size_t size)
 {
-	init(0x11, NULL, 18 + size*sizeof(BYTE));
+	init(0x11, 0x13, NULL, 18 + size*sizeof(BYTE));
 	putWord(pilotlen);
 	putWord(synclen1);
 	putWord(synclen2);
@@ -249,7 +260,7 @@ Block11::Block11(istream &is)
 	aux->Seek(15);
 	int len = aux->ReadUInt24() * sizeof(BYTE);
 
-	init(0x11, NULL, 18 + len);
+	init(0x11, 0x13, NULL, 18 + len);
 	put(aux);
 	delete aux;
 
@@ -287,14 +298,14 @@ string Block11::toString()
 
 Block12::Block12(WORD pulselen, WORD pulsenum)
 {
-	init(0x12, NULL, 4);
+	init(0x12, 0x05, NULL, 4);
 	putWord(pulselen);
 	putWord(pulsenum);
 }
 
 Block12::Block12(istream &is)
 {
-	init(0x12, NULL, 4);
+	init(0x12, 0x05, NULL, 4);
 	put(is, 4);
 }
 
@@ -310,7 +321,7 @@ string Block12::toString()
 
 Block13::Block13(BYTE pulsenum, WORD *lengths)
 {
-	init(0x13, NULL, pulsenum * sizeof(WORD));
+	init(0x13, 0x02, NULL, 1 + pulsenum * sizeof(WORD));
 	putByte(pulsenum);
 	for (int i=0; i<pulsenum; i++) {
 		putWord(lengths[i]);
@@ -322,7 +333,7 @@ Block13::Block13(istream &is)
 	BYTE num = is.get();
 	int len = num * sizeof(WORD);
 
-	init(0x13, NULL, 1 + len);
+	init(0x13, 0x02, NULL, 1 + len);
 	putByte(num);
 
 	put(is, len);
@@ -345,7 +356,7 @@ string Block13::toString()
 
 Block14::Block14(WORD bit0len, WORD bit1len, BYTE rbits, WORD pause, char *data, size_t size)
 {
-	init(0x14, NULL, 10 + size);
+	init(0x14, 0x0B, NULL, 10 + size);
 	putWord(bit0len);
 	putWord(bit1len);
 	putByte(rbits);
@@ -361,7 +372,7 @@ Block14::Block14(istream &is)
 	aux->Seek(7);
 	int len = aux->ReadUInt24();
 
-	init(0x14, NULL, 10 + len);
+	init(0x14, 0x0B, NULL, 10 + len);
 	put(aux);
 	delete aux;
 
@@ -399,7 +410,7 @@ string Block14::toString()
 
 Block15::Block15(WORD numstates, WORD pause, BYTE rbits, char *data, size_t size)
 {
-	init(0x15, NULL, 8 + size);
+	init(0x15, 0x09, NULL, 8 + size);
 	putWord(numstates);
 	putWord(pause);
 	putByte(rbits);
@@ -414,7 +425,7 @@ Block15::Block15(istream &is)
 	aux->Seek(5);
 	int len = aux->ReadUInt24();
 
-	init(0x15, NULL, 8 + len);
+	init(0x15, 0x09, NULL, 8 + len);
 	put(aux);
 	delete aux;
 
@@ -432,13 +443,13 @@ string Block15::toString()
 
 Block20::Block20(WORD pause)
 {
-	init(0x20, NULL, 2);
+	init(0x20, 0x03, NULL, 2);
 	putWord(pause);
 }
 
 Block20::Block20(istream &is)
 {
-	init(0x20, NULL, 2);
+	init(0x20, 0x03, NULL, 2);
 	put(is, 2);
 }
 
@@ -477,7 +488,7 @@ string Block20::toString()
 
 Block21::Block21(string namegroup)
 {
-	init(0x21, NULL, sizeof(BYTE) + namegroup.length());
+	init(0x21, 0x02, NULL, sizeof(BYTE) + namegroup.length());
 	putByte(namegroup.length());
 	putString(namegroup);
 }
@@ -486,7 +497,7 @@ Block21::Block21(istream &is)
 {
 	BYTE len = is.get();
 
-	init(0x21, NULL, sizeof(BYTE) + len);
+	init(0x21, 0x02, NULL, sizeof(BYTE) + len);
 	putByte(len);
 
 	put(is, len);
@@ -502,12 +513,12 @@ string Block21::toString()
 
 Block22::Block22()
 {
-	init(0x22, NULL, 0);
+	init(0x22, 0x01, NULL, 0);
 }
 
 Block22::Block22(istream &is)
 {
-	init(0x22, NULL, 0);
+	init(0x22, 0x01, NULL, 0);
 }
 
 string Block22::toString()
@@ -521,13 +532,13 @@ string Block22::toString()
 
 Block23::Block23(WORD jump)
 {
-	init(0x20, NULL, 2);
+	init(0x20, 0x03, NULL, 2);
 	putWord(jump);
 }
 
 Block23::Block23(istream &is)
 {
-	init(0x23, NULL, 2);
+	init(0x23, 0x03, NULL, 2);
 	put(is, 2);
 }
 
@@ -542,13 +553,13 @@ string Block23::toString()
 
 Block24::Block24(WORD numRepeats)
 {
-	init(0x24, NULL, 2);
+	init(0x24, 0x03, NULL, 2);
 	putWord(numRepeats);
 }
 
 Block24::Block24(istream &is)
 {
-	init(0x24, NULL, 2);
+	init(0x24, 0x03, NULL, 2);
 	put(is, 2);
 }
 
@@ -562,12 +573,12 @@ string Block24::toString()
 
 Block25::Block25()
 {
-	init(0x25, NULL, 0);
+	init(0x25, 0x01, NULL, 0);
 }
 
 Block25::Block25(istream &is)
 {
-	init(0x25, NULL, 0);
+	init(0x25, 0x01, NULL, 0);
 }
 
 string Block25::toString()
@@ -582,7 +593,7 @@ string Block25::toString()
 
 Block26::Block26(WORD num, WORD *calls)
 {
-	init(0x26, NULL, 2 + num * sizeof(WORD));
+	init(0x26, 0x03, NULL, 2 + num * sizeof(WORD));
 	putWord(num);
 	put((char*)calls, num * sizeof(WORD));
 }
@@ -594,7 +605,7 @@ Block26::Block26(istream &is)
 	aux->Seek(0);
 	int len = aux->ReadUInt16() * sizeof(WORD);
 
-	init(0x26, NULL, 2 + len);
+	init(0x26, 0x03, NULL, 2 + len);
 	put(aux);
 	delete aux;
 
@@ -607,16 +618,16 @@ string Block26::toString()
 }
 
 // ============================================================================================
-//Block #27 - Return from sequence
+// Block #27 - Return from sequence
 
 Block27::Block27()
 {
-	init(0x27, NULL, 0);
+	init(0x27, 0x01, NULL, 0);
 }
 
 Block27::Block27(istream &is)
 {
-	init(0x27, NULL, 0);
+	init(0x27, 0x01, NULL, 0);
 }
 
 string Block27::toString()
@@ -640,7 +651,7 @@ Block28::Block28(BYTE num, WORD *offsets, string *texts)
 	int len = 1 + 3 * num;
 	for (int i=0; i<num; i++) len += texts[i].length();
 
-	init(0x28, NULL, 2 + len);
+	init(0x28, 0x04, NULL, 2 + len);
 	putWord(len);
 	putByte(num);
 	
@@ -658,7 +669,7 @@ Block28::Block28(istream &is)
 	aux->Seek(0);
 	int len = aux->ReadUInt16();
 
-	init(0x28, NULL, 2 + len);
+	init(0x28, 0x04, NULL, 2 + len);
 	put(aux);
 	delete aux;
 
@@ -676,13 +687,13 @@ string Block28::toString()
 
 Block2A::Block2A()
 {
-	init(0x2A, NULL, 2);
+	init(0x2A, 0x03, NULL, 2);
 	putWord(0);
 }
 
 Block2A::Block2A(istream &is)
 {
-	init(0x2A, NULL, 2);
+	init(0x2A, 0x03, NULL, 2);
 	put(is, 2);
 }
 
@@ -698,7 +709,7 @@ string Block2A::toString()
 
 Block30::Block30(string text)
 {
-	init(0x30, NULL, 1 + text.length());
+	init(0x30, 0x02, NULL, 1 + text.length());
 	putByte(text.length());
 	putString(text);
 }
@@ -707,7 +718,7 @@ Block30::Block30(istream &is)
 {
 	BYTE len = is.get();
 
-	init(0x30, NULL, 1 + len);
+	init(0x30, 0x02, NULL, 1 + len);
 	putByte(len);
 
 	put(is, len);
@@ -733,7 +744,7 @@ string Block30::toString()
 
 Block31::Block31(BYTE time, string text)
 {
-	init(0x31, NULL, 2 + text.length());
+	init(0x31, 0x03, NULL, 2 + text.length());
 	putByte(time);
 	putByte(text.length());
 	putString(text);
@@ -746,7 +757,7 @@ Block31::Block31(istream &is)
 	aux->Seek(1);
 	int len = aux->ReadUByte();
 
-	init(0x31, NULL, 2 + len);
+	init(0x31, 0x03, NULL, 2 + len);
 	put(aux);
 	delete aux;
 
@@ -792,7 +803,7 @@ Block32::Block32(BYTE num, BYTE *ids, string *texts)
 	int len = 1 + 2 * num;
 	for (int i=0; i<num; i++) len += texts[i].length();
 	
-	init(0x32, NULL, 2 + len);
+	init(0x32, 0x04, NULL, 2 + len);
 	putWord(len);
 	putByte(num);
 	for (int i=0; i<num; i++) {
@@ -809,7 +820,7 @@ Block32::Block32(istream &is)
 	aux->Seek(0);
 	int len = aux->ReadUInt16();
 
-	init(0x32, NULL, 2 + len);
+	init(0x32, 0x04, NULL, 2 + len);
 	put(aux);
 	delete aux;
 
@@ -865,7 +876,7 @@ string Block32::toString()
 
 Block33::Block33(BYTE num, BYTE *hwtype, BYTE *hwid, BYTE *hwinfo)
 {
-	init(0x33, NULL, 1 + num * 3);
+	init(0x33, 0x02, NULL, 1 + num * 3);
 	putByte(num);
 	for (int i=0; i<num; i++) {
 		putByte(hwtype[i]);
@@ -879,7 +890,7 @@ Block33::Block33(istream &is)
 	BYTE num = is.get();
 	int len = num * 3;
 
-	init(0x33, NULL, 1 + len);
+	init(0x33, 0x02, NULL, 1 + len);
 	putByte(num);
 
 	put(is, len);
@@ -898,7 +909,7 @@ string Block33::toString()
 
 Block35::Block35(string label, string info)
 {
-	init(0x35, NULL, 16 + sizeof(DWORD) + info.length());
+	init(0x35, 0x15, NULL, 16 + sizeof(DWORD) + info.length());
 	putString((label+"          ").substr(0, 16));
 	putDWord(info.length());
 	putString(info);
@@ -911,7 +922,7 @@ Block35::Block35(istream &is)
 	aux->Seek(16);
 	int len = aux->ReadUInt32();
 
-	init(0x35, NULL, 16 + sizeof(DWORD) + len);
+	init(0x35, 0x15, NULL, 16 + sizeof(DWORD) + len);
 	put(aux);
 	delete aux;
 
@@ -958,12 +969,12 @@ string Block35::toString()
 #define MSX_DATA_DESC   "MSX DATA Block";
 
 #define MSX_BINARY_LOAD "BLOAD\"CAS:\",R"
-#define MSX_BASIC_LOAD  "CLOAD\"CAS:\",R"
+#define MSX_BASIC_LOAD  "CLOAD + RUN"
 #define MSX_ASCII_LOAD  "RUN\"CAS:\""
 
 Block4B::Block4B(WORD pause, WORD pilot, WORD pulses, WORD bit0len, WORD bit1len, BYTE bitcfg, BYTE bytecfg, char *data, size_t size)
 {
-	init(0x4B, NULL, 16 + size);
+	init(0x4B, 0x11, NULL, 16 + size);
 	putDWord(12 + size);
 	putWord(pause);
 	putWord(pilot);
@@ -982,7 +993,7 @@ Block4B::Block4B(istream &is)
 	aux->Seek(0);
 	int len = aux->ReadUInt32();
 
-	init(0x4B, NULL, 4 + len);
+	init(0x4B, 0x11, NULL, 4 + len);
 	put(aux);
 	delete aux;
 
@@ -1086,12 +1097,12 @@ string Block4B::toString(bool isBinaryBlock)
 Block5A::Block5A()
 {
 	const char buff[9] = { 'X','T','a','p','e','!',0x1A,TZX_VER_HI,TZX_VER_LO };
-	init(0x5A, (char*)buff, 9);
+	init(0x5A, 0x0A, (char*)buff, 9);
 }
 
 Block5A::Block5A(istream &is)
 {
-	init(0x5A, NULL, 9);
+	init(0x5A, 0x0A, NULL, 9);
 	put(is, 9);
 }
 
@@ -1140,7 +1151,7 @@ Block19::Block19(istream &is)
 	aux->Seek(0);
 	int len = aux->ReadUInt32();
 
-	init(0x19, NULL, sizeof(DWORD) + len);
+	init(0x19, 0x13, NULL, sizeof(DWORD) + len);
 	put(aux);
 	delete aux;
 
@@ -1189,7 +1200,7 @@ Block16::Block16(istream &is)
 	aux->Seek(0);
 	int len = aux->ReadUInt32();
 
-	init(0x16, NULL, sizeof(DWORD) + len);
+	init(0x16, 0x29, NULL, sizeof(DWORD) + len);
 	put(aux);
 	delete aux;
 
@@ -1216,7 +1227,7 @@ Block17::Block17(istream &is)
 	aux->Seek(0);
 	int len = aux->ReadUInt32();
 
-	init(0x17, NULL, sizeof(DWORD) + len);
+	init(0x17, 0x17, NULL, sizeof(DWORD) + len);
 	put(aux);
 	delete aux;
 
@@ -1238,7 +1249,7 @@ Block34::Block34()
 
 Block34::Block34(istream &is)
 {
-	init(0x5A, NULL, 8);
+	init(0x5A, 0x08, NULL, 8);
 	put(is, 8);
 }
 
@@ -1262,7 +1273,7 @@ Block40::Block40(istream &is)
 	aux->Seek(1);
 	int len = aux->ReadUInt24();
 
-	init(0x40, NULL, sizeof(WORD24) + 1 + len);
+	init(0x40, 0x05, NULL, sizeof(WORD24) + 1 + len);
 	put(aux);
 	delete aux;
 

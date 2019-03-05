@@ -5,7 +5,9 @@
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
+#include <math.h>
 
+#include "colors.h"
 #include "makeTSX.h"
 #include "TZX.h"
 #include "TZX_Blocks.h"
@@ -13,8 +15,10 @@
 #include "BlockRipper.h"
 #include "rippers/B10_Standard_Ripper.h"
 #include "rippers/B12_PureTone_Ripper.h"
+#include "rippers/B13_PulseSequence_Ripper.h"
 #include "rippers/B20_Silence_Ripper.h"
 #include "rippers/MSX4B_Ripper.h"
+#include "rippers/Opera4B_Ripper.h"
 
 
 using namespace std;
@@ -44,10 +48,10 @@ bool outenveloppe = false;
 int main(int argc, const char* argv[])
 {
 	//Uppercase hex digits
-    cout.setf(cout.uppercase);
+	cout.setf(cout.uppercase);
 	//Float 2 decimals
 	cout.setf(ios::fixed);
-	cout.precision(3);
+	cout.precision(4);
 
 	showInfo();
 
@@ -151,12 +155,12 @@ int main(int argc, const char* argv[])
  */
 void showInfo()
 {
-//	cout << "\033[0;32m";
-	cout << "==================================================" << endl;
+	cout << TXT_B_YELLOW;
+	cout << "====================================================" << endl;
 	cout << " makeTSX v" << MAKETSX_VER << " - WAV to TSX(~TZX 1.21) " << RELEASE_DATE << endl;
 	cout << " Using " << TZX_LIB << " by NataliaPC" << endl;
-	cout << "==================================================" << endl;
-//	cout << "\e[0m";
+	cout << "====================================================" << endl;
+	cout << TXT_RESET;
 	cout << endl;
 }
 
@@ -164,33 +168,32 @@ void showInfo()
  * @brief 
  */
 void showUsage() {
-//	cout << "\033[0;32m";
+	cout << TXT_GREEN;
 	cout << "Usage:" << endl;
-//	cout << "\e[0m";
+	cout << TXT_RESET;
 	cout << "       makeTSX [switchesWAV] -wav <WAV_IN_FILE> -tsx <TSX_OUT_FILE>" << endl;
 	cout << "       makeTSX [switchesTSX] -tsx <TSX_IN_FILE>" << endl;
-//	cout << "\033[0;32m";
+	cout << TXT_GREEN;
 	cout << "SwitchesWAV:" << endl;
-//	cout << "\e[0m";
+	cout << TXT_RESET;
 	cout << "       -v    Verbose mode." << endl;
 	cout << "       -di   Disable interactive mode." << endl;
-	cout << "       -dp   Disable predictive bits forward (don't use stop bits to predict)." << endl;
+	cout << "       -dp   Disable predictive mode." << endl;
 	cout << "       -dn   Disable normalize audio." << endl;
 	cout << "       -de   Disable enveloppe filter correction." << endl;
 	cout << "       -outn Save the file 'wav_normalized.wav'." << endl;
 	cout << "       -oute Save the file 'wav_envelopped.wav'." << endl;
-//	cout << "\033[0;32m";
+	cout << TXT_GREEN;
 	cout << "SwitchesTSX:" << endl;
-//	cout << "\e[0m";
+	cout << TXT_RESET;
 	cout << "       -i    Show TSX/TZX verbose blocks info." << endl;
-	cout << "       -d    Dump TSX/TZX data blocks in hexadecimal format." << endl;
 	cout << "       -c    Dump TSX/TZX data blocks in hex-char format." << endl;
+	cout << "       -d    Dump TSX/TZX data blocks in hexadecimal format." << endl;
 	cout << endl;
 }
 
 const char* getError() {
-//	return (const char*)"\033[1;31m[ERROR]\e[0m";
-	return (const char*)"[ERROR]";
+	return (const char*)(TXT_RED TXT_BLINK "[ERROR]" TXT_RESET);
 }
 
 /**
@@ -204,26 +207,26 @@ void doTsxMode()
 		exit(1);
 	}
 	if (tsxinfo) {
-//		cout << "\033[0;32m";
+		cout << TXT_GREEN;
 		cout << "TSX/TZX Blocks info:" << endl;
 		cout << "====================" << endl;
-//		cout << "\e[0m";
+		cout << TXT_RESET;
 		tsx->showInfo();
 		cout << endl;
 	}
 	if (tsxhexchr) {
-//		cout << "\033[0;32m";
+		cout << TXT_GREEN;
 		cout << "TSX/TZX Blocks Hex-Char dump" << endl;
 		cout << "============================" << endl;
-//		cout << "\e[0m";
+		cout << TXT_RESET;
 		tsx->hexCharDump();
 		cout << endl;
 	}
 	if (tsxdump) {
-//		cout << "\033[0;32m";
+		cout << TXT_GREEN;
 		cout << "TSX/TZX Blocks dump" << endl;
 		cout << "====================" << endl;
-//		cout << "\e[0m";
+		cout << TXT_RESET;
 		tsx->hexDump();
 		cout << endl;
 	}
@@ -256,9 +259,10 @@ Block32* addArchiveBlock()
  */
 void doWavMode()
 {
-	TZX *tsx = new TZX();
-	WAV *wav = new WAV(wavfile);
-	bool msxload = false;
+	TZX  *tsx = new TZX();
+	WAV  *wav = new WAV(wavfile);
+	bool  msxload = false;
+	float currentTime;
 
 	//Check Input WAV file
 	if (!wav || !wav->getSize()) {
@@ -301,52 +305,55 @@ void doWavMode()
 	}
 
 	//Ripppers
-	B10_Standard_Ripper *std10 = new B10_Standard_Ripper(wav);
-	B12_PureTone_Ripper *ton12 = new B12_PureTone_Ripper(wav);
-	B20_Silence_Ripper  *sil20 = new B20_Silence_Ripper(wav);
-	MSX4B_Ripper        *msx4b = new MSX4B_Ripper(wav);
+	B10_Standard_Ripper      *std10 = new B10_Standard_Ripper(wav);
+	B12_PureTone_Ripper      *ton12 = new B12_PureTone_Ripper(wav);
+	B13_PulseSequence_Ripper *seq13 = new B13_PulseSequence_Ripper(wav);
+	B20_Silence_Ripper       *sil20 = new B20_Silence_Ripper(wav);
+	MSX4B_Ripper             *msx4b = new MSX4B_Ripper(wav);
+	//Opera4B_Ripper           *ops4b = new Opera4B_Ripper(wav);
+	//Dragon4B_Ripper          *drg4b = new Dragon4B_Ripper(wav);
 
 	cout << "Detecting pulse lengths..." << endl << endl;
 
-	cout << ">>------------------- START RIPPING ---------------------" << endl;
-	cout << ">>------------------- START DETECTING BLOCK" << endl;
+	cout << TXT_GREEN ">>------------------- START RIPPING ---------------------" TXT_RESET << endl;
+	cout << TXT_GREEN ">>------------------- START DETECTING BLOCK" TXT_RESET << endl;
 	WORD initialBlocks = tsx->getNumBlocks();
-	while (!msx4b->eof()) {
+	while (!sil20->eof()) {
 		// =========================================================
 		// Block 20 Silence
 		if (sil20->detectBlock()) {
 
 			Block20 *b = (Block20*) sil20->getDetectedBlock();
 			if (tsx->getNumBlocks() == initialBlocks) {
-				if (!msx4b->eof()) cout << "<<------------------- SKIP SILENCE: IS FIRST BLOCK" << endl;
+				if (!msx4b->eof()) cout << TXT_GREEN "<<------------------- SKIP SILENCE: IS FIRST BLOCK" TXT_RESET << endl;
 			} else {
 				Block20 *last = (Block20*)tsx->getLastBlock();
 				//Add silence to previous blocks if support it
 				if (last->getId()==0x20) {
 					last->addPause(b->getPause());
-					cout << "<<------------------- SILENCE ADDED TO LAST BLOCK" << endl;
+					cout << TXT_GREEN "<<------------------- SILENCE ADDED TO LAST BLOCK" TXT_RESET << endl;
 				} else
 				if (last->getId()==0x4b) {
 					((Block4B*)last)->addPause(b->getPause());
-					cout << "<<------------------- SILENCE ADDED TO LAST BLOCK" << endl;
+					cout << TXT_GREEN "<<------------------- SILENCE ADDED TO LAST BLOCK" TXT_RESET << endl;
 				} else
 				if (last->getId()==0x10) {
 					((Block10*)last)->addPause(b->getPause());
-					cout << "<<------------------- SILENCE ADDED TO LAST BLOCK" << endl;
+					cout << TXT_GREEN "<<------------------- SILENCE ADDED TO LAST BLOCK" TXT_RESET << endl;
 				} else
 				if (last->getId()==0x11) {
 					((Block11*)last)->addPause(b->getPause());
-					cout << "<<------------------- SILENCE ADDED TO LAST BLOCK" << endl;
+					cout << TXT_GREEN "<<------------------- SILENCE ADDED TO LAST BLOCK" TXT_RESET << endl;
 				} else
 				if (last->getId()==0x14) {
 					((Block14*)last)->addPause(b->getPause());
-					cout << "<<------------------- SILENCE ADDED TO LAST BLOCK" << endl;
+					cout << TXT_GREEN "<<------------------- SILENCE ADDED TO LAST BLOCK" TXT_RESET << endl;
 				} else {
-					cout << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " SILENCE RIPPED" << endl;
+					cout << TXT_GREEN "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " SILENCE RIPPED" TXT_RESET << endl;
 					tsx->addBlock(b);
 				}
 			}
-			if (!sil20->eof()) cout << ">>------------------- START DETECTING BLOCK" << endl;
+			if (!sil20->eof()) cout << TXT_GREEN ">>------------------- START DETECTING BLOCK" TXT_RESET << endl;
 
 		} else
 		// =========================================================
@@ -354,9 +361,9 @@ void doWavMode()
 		if (ton12->detectBlock()) {
 
 			Block12 *b = (Block12*) ton12->getDetectedBlock();
-			cout << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " PURE TONE BLOCK RIPPED" << endl;
+			cout << TXT_GREEN "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " PURE TONE BLOCK RIPPED" TXT_RESET << endl;
 			tsx->addBlock(b);
-			if (!ton12->eof()) cout << ">>------------------- START DETECTING BLOCK" << endl;
+			if (!ton12->eof()) cout << TXT_GREEN ">>------------------- START DETECTING BLOCK" TXT_RESET << endl;
 
 		} else
 		// =========================================================
@@ -364,9 +371,9 @@ void doWavMode()
 		if (std10->detectBlock()) {
 
 			Block10 *b = (Block10*) std10->getDetectedBlock();
-			cout << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " STANDARD SPEED BLOCK RIPPED" << endl;
+			cout << TXT_GREEN "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " STANDARD SPEED BLOCK RIPPED" TXT_RESET << endl;
 			tsx->addBlock(b);
-			if (!std10->eof()) cout << ">>------------------- START DETECTING BLOCK" << endl;
+			if (!std10->eof()) cout << TXT_GREEN ">>------------------- START DETECTING BLOCK" TXT_RESET << endl;
 
 		} else
 		// =========================================================
@@ -374,7 +381,7 @@ void doWavMode()
 		if (msx4b->detectBlock()) {
 			
 			Block4B *b = (Block4B*) msx4b->getDetectedBlock();
-			cout << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " KCS RIPPED" << endl;
+			cout << TXT_GREEN "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " MSX KCS RIPPED" TXT_RESET << endl;
 			//If first 4B block we must add a 0x35 block
 			if (b->getId()==0x4b && !msxload) {
 				if (b->getFileType() != 0xff) {
@@ -384,7 +391,27 @@ void doWavMode()
 			}
 			//Add the block
 			tsx->addBlock(b);
-			if (!msx4b->eof()) cout << ">>------------------- START DETECTING BLOCK" << endl;
+			if (!msx4b->eof()) cout << TXT_GREEN ">>------------------- START DETECTING BLOCK" TXT_RESET << endl;
+
+		} else
+		// =========================================================
+		// Block 4B OPERA (OPERA Soft Protected block)
+/*		if (ops4b->detectBlock()) {
+			
+			Block4B *b = (Block4B*) ops4b->getDetectedBlock();
+			cout << TXT_GREEN "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " OPERA SOFT RIPPED" TXT_RESET << endl;
+			tsx->addBlock(b);
+			if (!ops4b->eof()) cout << TXT_GREEN ">>------------------- START DETECTING BLOCK" TXT_RESET << endl;
+
+		} else*/
+		// =========================================================
+		// Block 13 Pulse Sequence
+		if (seq13->detectBlock()) {
+
+			Block13 *b = (Block13*) seq13->getDetectedBlock();
+			cout << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " PULSE SEQUENCE RIPPED" << endl;
+			tsx->addBlock(b);
+			if (!seq13->eof()) cout << ">>------------------- START DETECTING BLOCK" << endl;
 
 		} else
 		// =========================================================
@@ -392,6 +419,10 @@ void doWavMode()
 		{
 			if (!msx4b->eof()) {
 				msx4b->incPos();
+				currentTime = msx4b->getTime(-1);
+				if (currentTime == floor(currentTime)) {
+					cout << "[" << currentTime << "s] none found" << endl;
+				}
 			}
 		}
 	}
@@ -412,7 +443,7 @@ void doWavMode()
 
 	//Save TSX file
 	tsx->saveToFile(tsxfile);
-	cout << "<<-------------------- END RIPPING ----------------------" << endl;
+	cout << TXT_GREEN "<<------------------- END RIPPING ----------------------" TXT_RESET << endl;
 
 	exit(0);
 }

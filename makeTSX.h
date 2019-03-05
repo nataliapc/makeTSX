@@ -6,8 +6,8 @@
 	0.6.2b	22.07.2017
 	0.7b	24.07.2017
 */
-#define MAKETSX_VER			"0.8b"
-#define RELEASE_DATE		"2017.07.29"
+#define MAKETSX_VER			"0.8.2b"
+#define RELEASE_DATE		"2019.03.05"
 #define MAKETSX_TEXTBLOCK	"Tape ripped by MAKETSX v" MAKETSX_VER " @ishwin74"
 
 void showInfo();

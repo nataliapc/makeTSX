@@ -10,7 +10,7 @@ using namespace std;
 using namespace WAV_Class;
 using namespace Rippers;
 
-#define TOLERANCE				0.20f
+#define TOLERANCE				0.15f
 #define bytesPerPulse(tstates)	((float)tstates*WAVSampleRate/Z80HZ)	// Bytes per pulse for T-states parameter on a WAV frequency
 #define bytesPerBit(tstates)	(bytesPerPulse(bauds)*2)				// Wav Bytes for every Data bit for T-states parameter
 
@@ -21,11 +21,11 @@ using namespace Rippers;
  * ZERO bit Pulse:	 855 Tstates (10.773 bytes @8bits:44100Hz)
  * ONE bit Pulse:	1710 Tstates (21.546 bytes @8bits:44100Hz)
  */
-#define PILOT_PULSE				(bytesPerPulse(2168))
-#define SYNC1_PULSE				(bytesPerPulse(667))
-#define SYNC2_PULSE				(bytesPerPulse(735))
-#define ZERO_PULSE				(bytesPerPulse(855))
-#define ONE_PULSE				(bytesPerPulse(1710))
+#define PILOT_PULSE				(bytesPerPulse(2168*modif))
+#define SYNC1_PULSE				(bytesPerPulse(667*modif))
+#define SYNC2_PULSE				(bytesPerPulse(735*modif))
+#define ZERO_PULSE				(bytesPerPulse(855*modif))
+#define ONE_PULSE				(bytesPerPulse(1710*modif))
 
 #define SILENCE_PULSE			(WAVSampleRate/1000)
 
@@ -64,7 +64,7 @@ bool B10_Standard_Ripper::detectBlock()
 	DWORD pilots = checkPilot(posIni);
 	if (pilots && !eof(pos+pilots)) {
 
-		cout << WAVTIME(posIni) << "Detected #10 Standard Speed Pilot tone (" << std::dec << pilots << " pulses)" << NEXTPULSES4(posIni) << endl;
+		cout << WAVTIME(posIni) << "Detected #10 Standard Speed Pilot tone (" << std::dec << pilots << " pulses|speed:x" << modif << ")" << NEXTPULSES4(posIni) << endl;
 		posIni += pilots;
 
 		//Check Sync#1
@@ -77,17 +77,17 @@ bool B10_Standard_Ripper::detectBlock()
 			if (ABS(states[posIni]+states[posIni+1], SYNC1_PULSE+SYNC2_PULSE) > (SYNC1_PULSE+SYNC2_PULSE)*customTolerance) {
 				bool ask = false;
 				if (interactiveMode) {
-					cout << WAVTIME(posIni) << "WARNING: Bad SYNC#1 Pulse " << NEXTPULSES2(posIni) << endl;
+					cout << WAVTIME(posIni) << WARNING ": Bad SYNC#1 Pulse " << NEXTPULSES2(posIni) << endl;
 					ask = askUserForSyncBits(posIni);
 				}
 				if (!ask) {
 					//If fails return that is not a block #10
-					cout << WAVTIME(posIni) << "ERROR: Bad SYNC#1 Pulse!" << NEXTPULSES2(posIni) << endl;
+					cout << WAVTIME(posIni) << ERROR << ": Bad SYNC#1 Pulse!" << NEXTPULSES2(posIni) << endl;
 					return false;
 				}
 			}
 			//SYNC1+SYNC2 is correct, skip SYNC bits
-			cout << WAVTIME(posIni) << "WARNING: Corrected SYNC PULSES (sum are OK)" << NEXTPULSES2(posIni) << endl;
+			cout << WAVTIME(posIni) << WARNING ": Corrected SYNC PULSES (sum are OK)" << NEXTPULSES2(posIni) << endl;
 			posIni += 2;
 
 		} else {
@@ -96,7 +96,7 @@ bool B10_Standard_Ripper::detectBlock()
 
 			//Check Sync#2
 			if (!eof(posIni) && ABS(states[posIni], SYNC2_PULSE) > SYNC2_PULSE*0.20f) {
-				cout << WAVTIME(posIni) << "WARNING: Bad SYNC#2 Pulse: Assuming is OK and continue" << NEXTPULSES2(posIni) << endl;
+				cout << WAVTIME(posIni) << WARNING ": Bad SYNC#2 Pulse: Assuming is OK and continue" << NEXTPULSES2(posIni) << endl;
 			}
 
 			if (verboseMode) cout << WAVTIME(posIni) << "  SYNC#2 PULSE OK" << NEXTPULSES(posIni) << endl;
@@ -106,22 +106,38 @@ bool B10_Standard_Ripper::detectBlock()
 		pos = posIni;
 
 		//Get Data bytes
-		WORD byte = 0;
+		WORD value = 0, lastByte = 0;
+		WORD chksum = 0, lastChksum = 0;
 		vector<BYTE> buff;
 		while (!eof()) {
-			byte = getByte();
-			if (byte==0xFFFF) break;
-			buff.push_back(byte);
+			value = getByte();
+			if (value==0xFFFF) {	//Found silence or EOF
+				chksum = lastChksum;
+				break;
+			}
+			lastByte = value;
+			buff.push_back(value);
+			if (lastByte==chksum && checkPilot(pos)) break; //Blocks without silence pause?
+			if (buff.size()>0) {
+				lastChksum = chksum;
+				chksum ^= (lastByte & 0xFF);
+			}
+			if (verboseMode) cout << WAVTIME(pos) << std::hex << "Pos:[0x" << buff.size() << "]  Detected BYTE #" << std::hex << value << " (" << std::dec << value << ")" << endl;
 		}
-		cout << WAVTIME(pos) << "Extracted data: " << (buff.size()) << " bytes" << endl;
+		cout << WAVTIME(pos) << "Extracted data: " << std::dec << (buff.size()) << " bytes" << endl;
+		if (chksum==lastByte) {
+			cout << WAVTIME(pos) << SUCCESS << ": CHECKSUM OK [0x"<< std::hex << chksum << "]" << endl;
+		} else {
+			cout << WAVTIME(pos) << ERROR << ": CHECKSUM ERR [0x"<< std::hex << chksum << " but expected 0x" << lastByte << "]" << endl;
+		}
 
-		//Pulses after data block?
+/*		//Pulses after data block?
 		posIni = pos;
 		WORD pulsesAfterData = skipToNextSilence();
 		if (pulsesAfterData > 0) {
-			cout << WAVTIME(posIni) << "WARNING: Skipping " << (pos-posIni) << " pulses after data block for "<< std::dec << (pulsesAfterData/(float)WAVSampleRate) << "sec" << endl;
+			cout << WAVTIME(posIni) << WARNING ": Skipping " << (pos-posIni) << " pulses after data block for "<< std::dec << (pulsesAfterData/(float)WAVSampleRate) << "sec" << endl;
 		}
-		//Pause after data in ms
+*/		//Pause after data in ms
 		posIni = pos;
 		pausems = (WORD)(skipSilence() * 1000.0f / WAVSampleRate);
 		if (pausems > 0) {
@@ -147,18 +163,19 @@ DWORD B10_Standard_Ripper::checkPilot(DWORD posIni)
 	float pulseSum = states[posIni] + states[posIni+1];
 	float pulses = 2.f;
 	float pulseLen = 0.f;
+	modif = 1.0f;
 	posIni += 2;
 	while (!eof(posIni)) {
 		pulseLen = pulseSum / pulses;
-		if (ABS(states[posIni-2]+states[posIni-1]+states[posIni], pulseLen*3) > pulseLen*0.5) break;
-		if (states[posIni] <= PILOT_PULSE*0.55f) break;
+		if (pulses>4.f && ABS(states[posIni-2]+states[posIni-1]+states[posIni], pulseLen*3) > pulseLen*0.5) break;
+		if (pulses>2.f && states[posIni] <= PILOT_PULSE*0.55f) break;
 		pulseSum += states[posIni++];
 		pulses++;
 	}
 	//At least 100 pilot pulses
 	if (pulseLen==0 || pulses < 100) return 0;
 	if (ABS(pulseLen, PILOT_PULSE) > PILOT_PULSE*0.1f) return 0;
-//	factor = pulseLen / PILOT_PULSE;
+	modif = pulseLen / PILOT_PULSE;
 	return pulses;
 }
 
@@ -256,12 +273,12 @@ WORD B10_Standard_Ripper::getByte()
 			//Detect silences in the 4 next pulses
 			BYTE idx = 0;
 			if (detectSilence(posIni) || detectSilence(posIni+(++idx))) {
-				cout << WAVTIME(posIni) << "WARNING: Silence detected. Ending block read..." << NEXTPULSES(posIni) << endl;
+				cout << WAVTIME(posIni) << WARNING ": Silence detected. Ending block read..." << NEXTPULSES(posIni) << endl;
 				pos = posIni + idx;
 				return 0xFFFF;
 			}
 
-			cout << WAVTIME(posIni) << "WARNING: Bad/Ambiguous pulse length in BIT #" << (8-i) << NEXTPULSES2(posIni) << endl;
+			cout << WAVTIME(posIni) << WARNING ": Bad/Ambiguous pulse length in BIT #" << (8-i) << NEXTPULSES2(posIni) << endl;
 
 			BYTE ask = 0xFF;
 			//Predicting using cycle sum
@@ -271,12 +288,12 @@ WORD B10_Standard_Ripper::getByte()
 				float diff1 = ABS(total, ONE_PULSE*2.f);
 				if (diff0 < diff1) {
 					//It's a Bit 0
-					cout << WAVTIME(posIni) << "SUCCESS: cycle sum closest to BIT #" << (8-i) << " like a 0" << endl;
+					cout << WAVTIME(posIni) << SUCCESS ": cycle sum closest to BIT #" << (8-i) << " like a 0" << endl;
 					ask = 0;
 				}
 				if (diff0 > diff1) {
 					//It's a Bit 1
-					cout << WAVTIME(posIni) << "SUCCESS: cycle sum closest to BIT #" << (8-i) << " like a 1" << endl;
+					cout << WAVTIME(posIni) << SUCCESS ": cycle sum closest to BIT #" << (8-i) << " like a 1" << endl;
 					ask = 1;
 				}
 			}
@@ -285,7 +302,7 @@ WORD B10_Standard_Ripper::getByte()
 			if (ask == 0xFF && predictiveMode) {
 				if (detectSilence(posIni+2) && bit0) {
 					//It's a Bit 0
-					cout << WAVTIME(posIni) << "SUCCESS: last bit in this block and seems a 0" << NEXTPULSES4(posIni) << endl;
+					cout << WAVTIME(posIni) << SUCCESS ": last bit in this block and seems a 0" << NEXTPULSES4(posIni) << endl;
 					ask = 0;
 				}
 			}
@@ -321,13 +338,11 @@ WORD B10_Standard_Ripper::getByte()
 		} else
 		//Unexpected error. Aborting
 		{
-			cout << WAVTIME(posIni) << "ERROR: Unexpected error! Aborting read..." << endl;
+			cout << WAVTIME(posIni) << ERROR << ": Unexpected error! Aborting read..." << endl;
 			goto END;
 		}
 		mask >>= 1;
 	}
-
-	if (verboseMode) cout << WAVTIME(posIni) << "  Detected BYTE #" << std::hex << value << " (" << std::dec << value << ")" << endl;
 
 END:
 	pos = posIni;

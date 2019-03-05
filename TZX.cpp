@@ -101,6 +101,7 @@ void TZX::genericShowInfo(int typeDump)
 	for (size_t i=0; i<blocks->size(); i++) {
 		old = b;
 		b = blocks->at(i);
+		cout << TXT_B_WHITE << "[" << std::dec << i << "] " << TXT_RESET;
 		if (b->getId()==0x4b && ((Block4B*)b)->getFileType()==0xff && old!=NULL && old->getId()==0x4b && ((Block4B*)old)->getFileType()==0xd0) {
 			cout << ((Block4B*)b)->toString(true) << endl;
 		} else {

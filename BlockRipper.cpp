@@ -146,11 +146,16 @@ bool BlockRipper::eof(DWORD posIni)
 	return posIni >= states.size();
 }
 
-BYTE BlockRipper::getState(int i)
+BYTE BlockRipper::getState(uint32_t i)
 {
 	if (isLow(i)) return STATE_LOW;
 	if (isHigh(i)) return STATE_HIGH;
 	return STATE_NOCHANGE;
+}
+
+float BlockRipper::getTime(uint32_t i) {
+	if (i<0) i = pos;
+	return ((float)samples[std::min((DWORD)i, (DWORD)(samples.size()-1))]/WAVSampleRate);
 }
 
 bool BlockRipper::isLow(int i)

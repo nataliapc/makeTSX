@@ -1,11 +1,11 @@
 #
-# Makefile for Linux x32
+# Makefile for Linux x64
 #
 CC = g++
-OUTFILE = makeTSX_linux32
+OUTFILE = makeTSX_linux64
 #DEBUG = -D_DEBUG_
 
-CFLAGS = -m32 -static -static-libgcc -static-libstdc++ -I./includes -I$(IDIR) -L/usr/lib32/ -Wall -O2 -std=gnu++11 $(DEBUG)
+CFLAGS = -m64 -static -static-libgcc -static-libstdc++ -I./includes -I$(IDIR) -L/usr/lib32/ -Wall -O2 -std=gnu++11 $(DEBUG)
 IDIR = .
 
 ODIR = obj
