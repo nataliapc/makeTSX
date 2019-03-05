@@ -37,7 +37,7 @@ namespace Rippers {
 		Opera4B_Ripper(WAV *wav);
 		Opera4B_Ripper(const Opera4B_Ripper& other);
 		~Opera4B_Ripper();
-		bool detectBlock();
+		bool detectBlock() override;
 	protected:
 		DWORD checkPilot(DWORD posIni) override;
 		WORD  getByte() override;

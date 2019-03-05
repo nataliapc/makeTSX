@@ -25,7 +25,7 @@ namespace Rippers {
 		B13_PulseSequence_Ripper(WAV *wav);
 		B13_PulseSequence_Ripper(const B13_PulseSequence_Ripper& other);
 		~B13_PulseSequence_Ripper();
-		bool detectBlock();
+		bool detectBlock() override;
 	protected:
 		bool detectSilence(DWORD posIni) override;
 
