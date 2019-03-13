@@ -340,8 +340,8 @@ void doWavMode()
 			} else {
 				last = tsx->getLastBlock();
 				//Add silence to previous blocks if support it
-				if (last!=NULL && dynamic_cast<WithPause*>(last)) {
-					((WithPause*)last)->addPause(b->getPause());
+				if (last!=NULL && dynamic_cast<BlockWithPause*>(last)) {
+					((BlockWithPause*)last)->addPause(b->getPause());
 					cout << TXT_GREEN << END_TAG << "SILENCE ADDED TO LAST BLOCK" << TXT_RESET << endl;
 				} else {
 					cout << TXT_GREEN << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " SILENCE RIPPED" << TXT_RESET << endl;
@@ -434,8 +434,8 @@ void doWavMode()
 
 	//If last block have a pause remove it
 	last = tsx->getLastBlock();
-	if (last!=NULL && dynamic_cast<WithPause*>(last) && last->getId()!=0x20) {
-		((WithPause*)last)->addPause(0);
+	if (last!=NULL && dynamic_cast<BlockWithPause*>(last) && last->getId()!=0x20) {
+		((BlockWithPause*)last)->addPause(0);
 		cout << TXT_GREEN << END_TAG << "SILENCE REMOVED FROM LAST BLOCK" << TXT_RESET << endl;
 	}
 
