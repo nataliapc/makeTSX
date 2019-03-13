@@ -58,6 +58,7 @@ Block* TZX::getBlock(size_t index)
 
 Block* TZX::getLastBlock()
 {
+	if (!getNumBlocks()) return NULL;
 	Block *b = blocks->at(blocks->size()-1);
 	return b;
 }

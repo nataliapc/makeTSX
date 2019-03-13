@@ -24,6 +24,7 @@ _DEPS = makeTSX.h TZX.h TZX_Blocks.h WAV.h \
 		rippers/B10_Standard_Ripper.h \
 		rippers/B12_PureTone_Ripper.h \
 		rippers/B13_PulseSequence_Ripper.h \
+		rippers/B15_DirectRecording_Ripper.h \
 		rippers/B20_Silence_Ripper.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
@@ -35,6 +36,7 @@ _OBJ =	makeTSX.o TZX.o TZX_Blocks.o WAV.o \
 		B10_Standard_Ripper.o \
 		B12_PureTone_Ripper.o \
 		B13_PulseSequence_Ripper.o \
+		B15_DirectRecording_Ripper.o \
 		B20_Silence_Ripper.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 

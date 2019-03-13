@@ -16,6 +16,7 @@
 #include "rippers/B10_Standard_Ripper.h"
 #include "rippers/B12_PureTone_Ripper.h"
 #include "rippers/B13_PulseSequence_Ripper.h"
+#include "rippers/B15_DirectRecording_Ripper.h"
 #include "rippers/B20_Silence_Ripper.h"
 #include "rippers/MSX4B_Ripper.h"
 #include "rippers/Opera4B_Ripper.h"
@@ -28,9 +29,15 @@ using namespace Rippers;
 
 #define getError() TXT_RED << TXT_BLINK << "[ERROR]" << TXT_RESET
 
+const char* START_TAG  = ">>================ ";
+const char* FINISH_TAG = "<<================ ";
+const char* BEGIN_TAG  = ">>#################### ";
+const char* END_TAG    = "<<-------------------- ";
+
 string tsxfile;
 string wavfile;
 bool tsxmode = false, wavmode = false;
+bool onlyBlock15 = false;
 bool tsxinfo = false;
 bool tsxdump = false;
 bool tsxhexchr = false;
@@ -73,6 +80,10 @@ int main(int argc, const char* argv[])
 		if (!strcasecmp(argv[i], "-v")) {
 			wavmode = true;
 			BlockRipper::setVerboseMode(true);
+		} else
+		if (!strcasecmp(argv[i], "-b15")) {
+			wavmode = true;
+			onlyBlock15 = true;
 		} else
 		if (!strcasecmp(argv[i], "-dn")) {
 			wavmode = true;
@@ -182,6 +193,7 @@ void showUsage() {
 	cout << "       -dp   Disable predictive mode." << endl;
 	cout << "       -dn   Disable normalize audio." << endl;
 	cout << "       -de   Disable enveloppe filter correction." << endl;
+	cout << "       -b15  Use only blocks #15(Direct Recording) & #20(Pause)." << endl;
 	cout << "       -outn Save the file 'wav_normalized.wav'." << endl;
 	cout << "       -oute Save the file 'wav_envelopped.wav'." << endl;
 	cout << TXT_GREEN;
@@ -214,7 +226,7 @@ void doTsxMode()
 	if (tsxhexchr) {
 		cout << TXT_GREEN;
 		cout << "TSX/TZX Blocks Hex-Char dump" << endl;
-		cout << "============================" << endl;
+		cout << "=============================" << endl;
 		cout << TXT_RESET;
 		tsx->hexCharDump();
 		cout << endl;
@@ -239,7 +251,7 @@ Block32* addArchiveBlock()
 	BYTE ids[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
 	string txt[] = {
 		"[Full title]",
-		"[Software house/publicher]",
+		"[Software house/publisher]",
 		"[Autor(s)]",
 		"[Year of publication]",
 		"[Language]",
@@ -302,18 +314,20 @@ void doWavMode()
 	}
 
 	//Ripppers
-	B10_Standard_Ripper      *std10 = new B10_Standard_Ripper(wav);
-	B12_PureTone_Ripper      *ton12 = new B12_PureTone_Ripper(wav);
-	B13_PulseSequence_Ripper *seq13 = new B13_PulseSequence_Ripper(wav);
-	B20_Silence_Ripper       *sil20 = new B20_Silence_Ripper(wav);
-	MSX4B_Ripper             *msx4b = new MSX4B_Ripper(wav);
-	//Opera4B_Ripper           *ops4b = new Opera4B_Ripper(wav);
-	//Dragon4B_Ripper          *drg4b = new Dragon4B_Ripper(wav);
+	Block                      *last;
+	B10_Standard_Ripper        *std10 = new B10_Standard_Ripper(wav);
+	B12_PureTone_Ripper        *ton12 = new B12_PureTone_Ripper(wav);
+	B13_PulseSequence_Ripper   *seq13 = new B13_PulseSequence_Ripper(wav);
+	B15_DirectRecording_Ripper *drc15 = new B15_DirectRecording_Ripper(wav);
+	B20_Silence_Ripper         *sil20 = new B20_Silence_Ripper(wav);
+	MSX4B_Ripper               *msx4b = new MSX4B_Ripper(wav);
+	//Opera4B_Ripper             *ops4b = new Opera4B_Ripper(wav);
+	//Dragon4B_Ripper            *drg4b = new Dragon4B_Ripper(wav);
 
 	cout << "Detecting pulse lengths..." << endl << endl;
 
-	cout << TXT_GREEN << ">>------------------- START RIPPING ---------------------" << TXT_RESET << endl;
-	cout << TXT_GREEN << ">>------------------- START DETECTING BLOCK" << TXT_RESET << endl;
+	cout << TXT_GREEN << START_TAG << "START RIPPING =========================" << TXT_RESET << endl;
+	cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
 	WORD initialBlocks = tsx->getNumBlocks();
 	while (!sil20->eof()) {
 		// =========================================================
@@ -322,35 +336,29 @@ void doWavMode()
 
 			Block20 *b = (Block20*) sil20->getDetectedBlock();
 			if (tsx->getNumBlocks() == initialBlocks) {
-				if (!msx4b->eof()) cout << TXT_GREEN << "<<------------------- SKIP SILENCE: IS FIRST BLOCK" << TXT_RESET << endl;
+				if (!msx4b->eof()) cout << TXT_GREEN << END_TAG << "SKIP SILENCE: IS FIRST BLOCK" << TXT_RESET << endl;
 			} else {
-				Block20 *last = (Block20*)tsx->getLastBlock();
+				last = tsx->getLastBlock();
 				//Add silence to previous blocks if support it
-				if (last->getId()==0x20) {
-					last->addPause(b->getPause());
-					cout << TXT_GREEN << "<<------------------- SILENCE ADDED TO LAST BLOCK" << TXT_RESET << endl;
-				} else
-				if (last->getId()==0x4b) {
-					((Block4B*)last)->addPause(b->getPause());
-					cout << TXT_GREEN << "<<------------------- SILENCE ADDED TO LAST BLOCK" << TXT_RESET << endl;
-				} else
-				if (last->getId()==0x10) {
-					((Block10*)last)->addPause(b->getPause());
-					cout << TXT_GREEN << "<<------------------- SILENCE ADDED TO LAST BLOCK" << TXT_RESET << endl;
-				} else
-				if (last->getId()==0x11) {
-					((Block11*)last)->addPause(b->getPause());
-					cout << TXT_GREEN << "<<------------------- SILENCE ADDED TO LAST BLOCK" << TXT_RESET << endl;
-				} else
-				if (last->getId()==0x14) {
-					((Block14*)last)->addPause(b->getPause());
-					cout << TXT_GREEN << "<<------------------- SILENCE ADDED TO LAST BLOCK" << TXT_RESET << endl;
+				if (last!=NULL && dynamic_cast<WithPause*>(last)) {
+					((WithPause*)last)->addPause(b->getPause());
+					cout << TXT_GREEN << END_TAG << "SILENCE ADDED TO LAST BLOCK" << TXT_RESET << endl;
 				} else {
-					cout << TXT_GREEN << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " SILENCE RIPPED" << TXT_RESET << endl;
+					cout << TXT_GREEN << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " SILENCE RIPPED" << TXT_RESET << endl;
 					tsx->addBlock(b);
 				}
 			}
-			if (!sil20->eof()) cout << TXT_GREEN << ">>------------------- START DETECTING BLOCK" << TXT_RESET << endl;
+			if (!sil20->eof()) cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
+
+		} else
+		// =========================================================
+		// Block 15 Pure Tone
+		if (onlyBlock15 && drc15->detectBlock()) {
+
+			Block15 *b = (Block15*) drc15->getDetectedBlock();
+			cout << TXT_GREEN << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " DIRECT RECORDING BLOCK RIPPED" << TXT_RESET << endl;
+			tsx->addBlock(b);
+			if (!drc15->eof()) cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
 
 		} else
 		// =========================================================
@@ -358,9 +366,9 @@ void doWavMode()
 		if (ton12->detectBlock()) {
 
 			Block12 *b = (Block12*) ton12->getDetectedBlock();
-			cout << TXT_GREEN << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " PURE TONE BLOCK RIPPED" << TXT_RESET << endl;
+			cout << TXT_GREEN << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " PURE TONE BLOCK RIPPED" << TXT_RESET << endl;
 			tsx->addBlock(b);
-			if (!ton12->eof()) cout << TXT_GREEN << ">>------------------- START DETECTING BLOCK" << TXT_RESET << endl;
+			if (!ton12->eof()) cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
 
 		} else
 		// =========================================================
@@ -368,9 +376,9 @@ void doWavMode()
 		if (std10->detectBlock()) {
 
 			Block10 *b = (Block10*) std10->getDetectedBlock();
-			cout << TXT_GREEN << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " STANDARD SPEED BLOCK RIPPED" << TXT_RESET << endl;
+			cout << TXT_GREEN << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " STANDARD SPEED BLOCK RIPPED" << TXT_RESET << endl;
 			tsx->addBlock(b);
-			if (!std10->eof()) cout << TXT_GREEN << ">>------------------- START DETECTING BLOCK" << TXT_RESET << endl;
+			if (!std10->eof()) cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
 
 		} else
 		// =========================================================
@@ -378,7 +386,7 @@ void doWavMode()
 		if (msx4b->detectBlock()) {
 			
 			Block4B *b = (Block4B*) msx4b->getDetectedBlock();
-			cout << TXT_GREEN << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " MSX KCS RIPPED" << TXT_RESET << endl;
+			cout << TXT_GREEN << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " MSX KCS RIPPED" << TXT_RESET << endl;
 			//If first 4B block we must add a 0x35 block
 			if (b->getId()==0x4b && !msxload) {
 				if (b->getFileType() != 0xff) {
@@ -388,7 +396,7 @@ void doWavMode()
 			}
 			//Add the block
 			tsx->addBlock(b);
-			if (!msx4b->eof()) cout << TXT_GREEN << ">>------------------- START DETECTING BLOCK" << TXT_RESET << endl;
+			if (!msx4b->eof()) cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
 
 		} else
 		// =========================================================
@@ -406,9 +414,9 @@ void doWavMode()
 		if (seq13->detectBlock()) {
 
 			Block13 *b = (Block13*) seq13->getDetectedBlock();
-			cout << "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " PULSE SEQUENCE RIPPED" << endl;
+			cout << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " PULSE SEQUENCE RIPPED" << endl;
 			tsx->addBlock(b);
-			if (!seq13->eof()) cout << ">>------------------- START DETECTING BLOCK" << endl;
+			if (!seq13->eof()) cout << BEGIN_TAG << "START DETECTING BLOCK" << endl;
 
 		} else
 		// =========================================================
@@ -423,24 +431,17 @@ void doWavMode()
 			}
 		}
 	}
-	//If last block remove pause
-	Block *b = tsx->getLastBlock();
-	if (b->getId()==0x4b) {
-		((Block4B*)b)->setPause(0);
-	} else
-	if (b->getId()==0x10) {
-		((Block10*)b)->setPause(0);
-	} else
-	if (b->getId()==0x11) {
-		((Block11*)b)->setPause(0);
-	} else
-	if (b->getId()==0x14) {
-		((Block14*)b)->setPause(0);
+
+	//If last block have a pause remove it
+	last = tsx->getLastBlock();
+	if (last!=NULL && dynamic_cast<WithPause*>(last) && last->getId()!=0x20) {
+		((WithPause*)last)->addPause(0);
+		cout << TXT_GREEN << END_TAG << "SILENCE REMOVED FROM LAST BLOCK" << TXT_RESET << endl;
 	}
 
 	//Save TSX file
 	tsx->saveToFile(tsxfile);
-	cout << TXT_GREEN << "<<------------------- END RIPPING ----------------------" << TXT_RESET << endl;
+	cout << TXT_GREEN << FINISH_TAG << "END RIPPING ==========================" << TXT_RESET << endl;
 
 	exit(0);
 }

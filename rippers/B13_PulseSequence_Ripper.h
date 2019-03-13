@@ -1,5 +1,5 @@
 #ifndef __B13_PULSESEQUENCE_RIPPER_H__
-#define __B13_PulseSequence_Ripper_H__
+#define __B13_PULSESEQUENCE_RIPPER_H__
 
 #include "types.h"
 #include "BlockRipper.h"

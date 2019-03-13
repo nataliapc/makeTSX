@@ -49,17 +49,28 @@ namespace TZX_Blocks
 	};
 
 	// ============================================================================================
+	// Interface WithPause
+
+	class WithPause
+	{
+	public:
+		virtual void setPause(WORD) = 0;
+		virtual void addPause(WORD) = 0;
+		virtual ~WithPause() {};
+	};
+
+	// ============================================================================================
 	// Block #10 - Standard speed data block
 	//	0x00	-	WORD 		Pause after this block (ms.) {1000}
 	//	0x02	N	WORD 		Length of data that follow
 	//	0x04	-	BYTE[N]		Data as in .TAP files
-	class Block10 : public Block
+	class Block10 : public Block, public WithPause
 	{
 	public:
 		Block10(WORD pause, char* data, size_t size);
 		Block10(istream &);
-		void   setPause(WORD pause);
-		void   addPause(WORD);
+		void   setPause(WORD) override;
+		void   addPause(WORD) override;
 		string toString() override;
 	};
 
@@ -76,13 +87,13 @@ namespace TZX_Blocks
 	//	0x0D	-	WORD		Pause after this block (ms.) {1000}
 	//	0x0F	N	BYTE[3]		Length of data that follow
 	//	0x12	-	BYTE[N]		Data as in .TAP files
-	class Block11 : public Block
+	class Block11 : public Block, public WithPause
 	{
 	public:
 		Block11(WORD pilotlen, WORD synclen1, WORD synclen2, WORD bit0len, WORD bit1len, WORD pilotnum, BYTE rbits, WORD pause, char *data, size_t size);
 		Block11(istream &);
-		void   setPause(WORD pause);
-		void   addPause(WORD);
+		void   setPause(WORD) override;
+		void   addPause(WORD) override;
 		string toString() override;
 	};
 
@@ -121,13 +132,13 @@ namespace TZX_Blocks
 	//	0x05	-	WORD		Pause after this block (ms.)
 	//	0x07	N	BYTE[3] 	Length of data that follow
 	//	0x0A	-	BYTE[N]		Data as in .TAP files
-	class Block14 : public Block
+	class Block14 : public Block, public WithPause
 	{
 	public:
 		Block14(WORD bit0len, WORD bit1len, BYTE rbits, WORD pause, char *data, size_t size);
 		Block14(istream &);
-		void   setPause(WORD pause);
-		void   addPause(WORD);
+		void   setPause(WORD) override;
+		void   addPause(WORD) override;
 		string toString() override;
 	};
 
@@ -140,25 +151,27 @@ namespace TZX_Blocks
 	//	0x05	N	BYTE[3]		Length of samples' data
 	//	0x08	-	BYTE[N]		Samples data. Each bit represents a state on the EAR port (i.e. one sample).
 	//							MSb is played first.
-	class Block15 : public Block
+	class Block15 : public Block, public WithPause
 	{
 	public:
 		Block15(WORD numstates, WORD pause, BYTE rbits, char *data, size_t size);
 		Block15(istream &);
+		void   setPause(WORD) override;
+		void   addPause(WORD) override;
 		string toString() override;
 	};
 
 	// ============================================================================================
 	// Block #20 - Pause (silence) or 'Stop the tape' command
 	//	0x00	-	WORD		Pause duration (ms.)
-	class Block20 : public Block
+	class Block20 : public Block, public WithPause
 	{
 	public:
 		Block20(WORD pause);
 		Block20(istream &);
 		WORD getPause();
-		void setPause(WORD pause);
-		void addPause(WORD pause);
+		void   setPause(WORD) override;
+		void   addPause(WORD) override;
 		string toString() override;
 	};
 
@@ -373,7 +386,7 @@ namespace TZX_Blocks
 	//							Bit 1: Reserved
 	//							Bit 0: Endianless (0 for LSb first, 1 for MSb first) {0}
 	//	0x10	-	BYTE[N]		Data stream
-	class Block4B : public Block
+	class Block4B : public Block, public WithPause
 	{
 	public:
 		Block4B(WORD pause, WORD pilot, WORD pulses, WORD bit0len, WORD bit1len, BYTE bitcfg, BYTE bytecfg, char *data, size_t size);
@@ -381,8 +394,8 @@ namespace TZX_Blocks
 		BYTE   getFileType();
 		string getFileTypeLoad();
 		string getFileTypeDescription();
-		void   setPause(WORD pause);
-		void   addPause(WORD);
+		void   setPause(WORD) override;
+		void   addPause(WORD) override;
 		string toString() override;
 		string toString(bool);
 	};

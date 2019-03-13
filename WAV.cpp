@@ -169,7 +169,7 @@ void WAV::normalize()
 {
 	BYTE* bdata = reinterpret_cast<BYTE*>(data);
 	DWORD  pos = 0;
-	DWORD  len = header->nSamplesPerSec * 0.25f / 1000;		//Segmentos de 2ms
+	DWORD  len = header->nSamplesPerSec * (0.25f / 1000);	//0.25 ms segments
 	int16_t min, max;
 	int16_t v;
 

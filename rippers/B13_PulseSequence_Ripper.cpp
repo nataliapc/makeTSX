@@ -11,7 +11,7 @@ using namespace WAV_Class;
 using namespace Rippers;
 
 
-#define SILENCE_MILIS			40
+#define SILENCE_MILIS			1
 
 
 B13_PulseSequence_Ripper::B13_PulseSequence_Ripper(WAV *wav) : BlockRipper(wav)

@@ -61,6 +61,8 @@ namespace WAV_Class {
 		bool 	detectSilence();
 		DWORD	skipSilence();
 		DWORD	skipToNextSilence();
+		bool	isLow(int i);
+		bool	isHigh(int i);
 
 	protected:
 		const static DWORD THRESHOLD_SILENCE = 50;
@@ -80,8 +82,6 @@ namespace WAV_Class {
 		size_t size;					//Size of the WAV data
 
 		void initializeStatesVector();
-		bool isLow(int i);
-		bool isHigh(int i);
 	};
 
 }

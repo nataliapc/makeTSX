@@ -432,9 +432,35 @@ Block15::Block15(istream &is)
 	put(is, len);
 }
 
+void Block15::setPause(WORD pause)
+{
+	bytes->Seek(3);
+	bytes->WriteUInt16(pause);
+}
+
+void Block15::addPause(WORD pause)
+{
+	bytes->Seek(3);
+	pause += bytes->ReadUInt16();
+	
+	setPause(pause);
+}
+
 string Block15::toString()
 {
-	return Block::toString() + " - Direct recording block";
+	bytes->Seek(1);
+	uint16_t tstates = bytes->ReadUInt16();
+	uint16_t pause = bytes->ReadUInt16();
+	bytes->ReadUByte();
+	uint32_t samples = bytes->ReadUInt24();
+
+	std::stringstream stream;
+	stream << Block::toString() << " - Direct recording block";
+	stream << "/tSample length: " << std::dec << tstates << " T-states" << endl <<
+			  "/tNum. Samples:  " << std::dec << samples << " samples" << endl <<
+			  "/tPause:         " << std::dec << pause << "ms" << endl;
+
+	return stream.str();
 }
 
 // ============================================================================================
