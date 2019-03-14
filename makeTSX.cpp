@@ -387,8 +387,8 @@ void doWavMode()
 			
 			Block4B *b = (Block4B*) msx4b->getDetectedBlock();
 			cout << TXT_GREEN << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " MSX KCS RIPPED" << TXT_RESET << endl;
-			//If first 4B block we must add a 0x35 block
-			if (b->getId()==0x4b && !msxload) {
+			//If first block is B4B_MSX_KCS we must add a B35_CUSTOM_INFO block before
+			if (b->getId()==B4B_MSX_KCS && !msxload) {
 				if (b->getFileType() != 0xff) {
 					tsx->addBlock(new Block35("MSXLOAD", b->getFileTypeLoad()));
 				}
@@ -414,9 +414,9 @@ void doWavMode()
 		if (seq13->detectBlock()) {
 
 			Block13 *b = (Block13*) seq13->getDetectedBlock();
-			cout << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " PULSE SEQUENCE RIPPED" << endl;
+			cout << TXT_GREEN << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " PULSE SEQUENCE RIPPED" << TXT_RESET << endl;
 			tsx->addBlock(b);
-			if (!seq13->eof()) cout << BEGIN_TAG << "START DETECTING BLOCK" << endl;
+			if (!seq13->eof()) cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
 
 		} else
 		// =========================================================
@@ -434,7 +434,7 @@ void doWavMode()
 
 	//If last block have a pause remove it
 	last = tsx->getLastBlock();
-	if (last!=NULL && dynamic_cast<BlockWithPause*>(last) && last->getId()!=0x20) {
+	if (last!=NULL && dynamic_cast<BlockWithPause*>(last) && last->getId()!=B20_SILENCE_BLOCK) {
 		((BlockWithPause*)last)->addPause(0);
 		cout << TXT_GREEN << END_TAG << "SILENCE REMOVED FROM LAST BLOCK" << TXT_RESET << endl;
 	}

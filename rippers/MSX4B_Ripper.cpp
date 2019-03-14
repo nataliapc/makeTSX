@@ -52,7 +52,7 @@ bool MSX4B_Ripper::detectBlock()
 		if (ABS(bauds, 1200) < 15) roundedBauds = 1200;
 		if (ABS(bauds, 2400) < 15) roundedBauds = 2400;
 		cout << WAVTIME(pos) << TXT_B_GREEN << "Detected #4B MSX Pilot tone (" << std::dec << bauds << " bauds)" << TXT_RESET << endl;
-		if (bauds != roundedBauds) {
+		if (bauds == roundedBauds) {
 			cout << WAVTIME(pos) << MSG_WARNING << ": No standard baudrate!" << endl;
 		}
 		blockInfo.pilot = MSX_PULSE(bauds);

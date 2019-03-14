@@ -8,8 +8,45 @@
 using namespace std;
 using namespace Utility;
 
+
+// TZX/TSX BLOCKS
+#define B10_STD_BLOCK       0x10
+#define B11_TURBO_BLOCK     0x11
+#define B12_PURE_TONE       0x12
+#define B13_PULSE_SEQ       0x13
+#define B14_PURE_DATA       0x14
+#define B15_DIRECT_REC      0x15
+#define B18_CSW_REC         0x18
+#define B19_GEN_DATA        0x19
+#define B20_SILENCE_BLOCK   0x20
+#define B21_GRP_START       0x21
+#define B22_GRP_END         0x22
+#define B23_JUMP_BLOCK      0x23
+#define B24_LOOP_START      0x24
+#define B25_LOOP_END        0x25
+#define B26_CALL_SEQ        0x26
+#define B27_RET_SEQ         0x27
+#define B28_SEL_BLOCK       0x28
+#define B2A_STOP48K         0x2A
+#define B2B_SIGNAL_LEVEL    0x2B
+#define B30_TEXT_DESCRIP    0x30
+#define B31_MSG_BLOCK       0x31
+#define B32_ARCHIVE_INFO    0x32
+#define B33_HARDWARE_TYPE   0x33
+#define B35_CUSTOM_INFO     0x35
+#define B4B_MSX_KCS         0x4B
+#define B5A_GLUE_BLOCK      0x5A
+// DEPRECATED BLOCKS
+#define B16_C64ROM          0x16
+#define B17_C64TURBO        0x17
+#define B34_EMUINFO         0x34
+#define B40_SNAPSHOT        0x40
+
+
 namespace TZX_Blocks
 {
+	
+
 	// ============================================================================================
 	// Class Block
 
@@ -282,6 +319,18 @@ namespace TZX_Blocks
 	};
 
 	// ============================================================================================
+	// ID 2B - Set signal level
+	//	0x00	1	DWORD		Block length (without these four bytes)
+	//	0x04	-	BYTE		Signal level (0=low, 1=high)
+	class Block2B : public Block
+	{
+	public:
+		Block2B();
+		Block2B(istream &);
+		string toString() override;
+	};
+
+	// ============================================================================================
 	// Block #30 - Text description
 	//	0x00	N	BYTE		Length of the text description
 	//	0x01	-	CHAR[N]		Text description in ASCII format
@@ -416,6 +465,26 @@ namespace TZX_Blocks
 	//=================================
 
 	// ============================================================================================
+	// Block #18 - CSW recording block
+	//	0x00	10+N	DWORD	Block length (without these four bytes)
+	//	0x04	-		WORD	Pause after this block (in ms).
+	//	0x06	-		BYTE[3]	Sampling rate
+	//	0x09	-		BYTE	Compression type
+	//					  0x01: RLE
+	//					  0x02: Z-RLE
+	//	0x0A	-		DWORD	Number of stored pulses (after decompression, for validation purposes)
+	//	0x0E	-		BYTE[N]	CSW data, encoded according to the CSW file format specification.
+	class Block18 : public BlockWithPause
+	{
+	protected:
+		const uint8_t getPausePos() override { return 5; };
+	public:
+		Block18();
+		Block18(istream &);
+		string toString() override;
+	};
+
+	// ============================================================================================
 	// Block #19 - Generalized data block
 	//	0x00 	 -		DWORD		Block length (without these four bytes)
 	//	0x04 	 -		WORD 		Pause after this block (ms)
@@ -436,27 +505,13 @@ namespace TZX_Blocks
 	//	 (TOTP>0)*((2*NPP+1)*ASP)+	This field is present only if TOTD>0
 	//	 TOTP*3+
 	//	 (2*NPD+1)*ASD
-	class Block19 : public Block
+	class Block19 : public BlockWithPause
 	{
+	protected:
+		const uint8_t getPausePos() override { return 5; };
 	public:
 		Block19();
 		Block19(istream &);
-		string toString() override;
-	};
-
-	// ============================================================================================
-	// Block #18 - CSW recording block
-	class Block18 : public Block
-	{
-	public:
-		string toString() override;
-	};
-
-	// ============================================================================================
-	// ID 2B - Set signal level
-	class Block2B : public Block
-	{
-	public:
 		string toString() override;
 	};
 

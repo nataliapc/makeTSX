@@ -103,7 +103,8 @@ void TZX::genericShowInfo(int typeDump)
 		old = b;
 		b = blocks->at(i);
 		cout << TXT_B_WHITE << "[" << std::dec << i << "] " << TXT_RESET;
-		if (b->getId()==0x4b && ((Block4B*)b)->getFileType()==0xff && old!=NULL && old->getId()==0x4b && ((Block4B*)old)->getFileType()==0xd0) {
+		if (b->getId()==B4B_MSX_KCS && ((Block4B*)b)->getFileType()==0xff && old!=NULL && 
+			old->getId()==B4B_MSX_KCS && ((Block4B*)old)->getFileType()==0xd0) {
 			cout << ((Block4B*)b)->toString(true) << endl;
 		} else {
 			cout << b->toString() << endl;
@@ -139,38 +140,38 @@ bool TZX::loadFromFile(string filename)
 		if (ifs.eof()) break;
 		b = NULL;
 		switch (bid) {
-			case 0x10: b = new Block10(ifs); break;
-			case 0x11: b = new Block11(ifs); break;
-			case 0x12: b = new Block12(ifs); break;
-			case 0x13: b = new Block13(ifs); break;
-			case 0x14: b = new Block14(ifs); break;
-			case 0x15: b = new Block15(ifs); break;
-			case 0x20: b = new Block20(ifs); break;
-			case 0x21: b = new Block21(ifs); break;
-			case 0x22: b = new Block22(ifs); break;
-			case 0x23: b = new Block23(ifs); break;
-			case 0x24: b = new Block24(ifs); break;
-			case 0x25: b = new Block25(ifs); break;
-			case 0x26: b = new Block26(ifs); break;
-			case 0x27: b = new Block27(ifs); break;
-			case 0x28: b = new Block28(ifs); break;
-			case 0x2A: b = new Block2A(ifs); break;
-			case 0x30: b = new Block30(ifs); break;
-			case 0x31: b = new Block31(ifs); break;
-			case 0x32: b = new Block32(ifs); break;
-			case 0x33: b = new Block33(ifs); break;
-			case 0x35: b = new Block35(ifs); break;
-			case 0x4B: b = new Block4B(ifs); break;
-			case 0x5A: b = new Block5A(ifs); break;
+			case B10_STD_BLOCK:		b = new Block10(ifs); break;
+			case B11_TURBO_BLOCK:	b = new Block11(ifs); break;
+			case B12_PURE_TONE:		b = new Block12(ifs); break;
+			case B13_PULSE_SEQ:		b = new Block13(ifs); break;
+			case B14_PURE_DATA:		b = new Block14(ifs); break;
+			case B15_DIRECT_REC:	b = new Block15(ifs); break;
+			case B20_SILENCE_BLOCK:	b = new Block20(ifs); break;
+			case B21_GRP_START:		b = new Block21(ifs); break;
+			case B22_GRP_END:		b = new Block22(ifs); break;
+			case B23_JUMP_BLOCK:	b = new Block23(ifs); break;
+			case B24_LOOP_START:	b = new Block24(ifs); break;
+			case B25_LOOP_END:		b = new Block25(ifs); break;
+			case B26_CALL_SEQ:		b = new Block26(ifs); break;
+			case B27_RET_SEQ:		b = new Block27(ifs); break;
+			case B28_SEL_BLOCK:		b = new Block28(ifs); break;
+			case B2A_STOP48K:		b = new Block2A(ifs); break;
+			case B2B_SIGNAL_LEVEL:	b = new Block2B(ifs); break;
+			case B30_TEXT_DESCRIP:	b = new Block30(ifs); break;
+			case B31_MSG_BLOCK:		b = new Block31(ifs); break;
+			case B32_ARCHIVE_INFO:	b = new Block32(ifs); break;
+			case B33_HARDWARE_TYPE:	b = new Block33(ifs); break;
+			case B35_CUSTOM_INFO:	b = new Block35(ifs); break;
+			case B4B_MSX_KCS:		b = new Block4B(ifs); break;
+			case B5A_GLUE_BLOCK:	b = new Block5A(ifs); break;
 			//NOT FULLY IMPLEMENTED
-			case 0x18: cout << "Block #18 NOT YET IMPLEMENTED" << endl; break;
-			case 0x19: b = new Block19(ifs); break;
-			case 0x2B: cout << "Block #2B NOT YET IMPLEMENTED" << endl; break;
+			case B18_CSW_REC:		b = new Block18(ifs); break;
+			case B19_GEN_DATA:		b = new Block19(ifs); break;
 			//DEPRECATED
-			case 0x16: b = new Block16(ifs); break;
-			case 0x17: b = new Block17(ifs); break;
-			case 0x34: b = new Block34(ifs); break;
-			case 0x40: b = new Block40(ifs); break;
+			case B16_C64ROM:		b = new Block16(ifs); break;
+			case B17_C64TURBO:		b = new Block17(ifs); break;
+			case B34_EMUINFO:		b = new Block34(ifs); break;
+			case B40_SNAPSHOT:		b = new Block40(ifs); break;
 			default:   cout << "Block " << std::hex << bid << " UNKNOWN!!" << endl; break;
 		}
 		if (b!=NULL) {
