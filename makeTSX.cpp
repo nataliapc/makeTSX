@@ -434,8 +434,12 @@ void doWavMode()
 
 	//If last block have a pause remove it
 	last = tsx->getLastBlock();
-	if (last!=NULL && dynamic_cast<BlockWithPause*>(last) && last->getId()!=B20_SILENCE_BLOCK) {
-		((BlockWithPause*)last)->addPause(0);
+	while (last!=NULL && last->getId()==B20_SILENCE_BLOCK) {
+		tsx->removeLastBlock();
+		last = tsx->getLastBlock();
+	}
+	if (last!=NULL && dynamic_cast<BlockWithPause*>(last)) {
+		((BlockWithPause*)last)->setPause(0);
 		cout << TXT_GREEN << END_TAG << "SILENCE REMOVED FROM LAST BLOCK" << TXT_RESET << endl;
 	}
 

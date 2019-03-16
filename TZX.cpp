@@ -68,6 +68,11 @@ void TZX::addBlock(Block *block)
 	blocks->push_back(block);
 }
 
+void TZX::removeLastBlock()
+{
+	blocks->pop_back();
+}
+
 // ============================================================================================
 // Private methods
 

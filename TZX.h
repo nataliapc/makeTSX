@@ -44,6 +44,7 @@ namespace TZX_Class
 		Block* getBlock(size_t index);
 		Block* getLastBlock();
 		void   addBlock(Block *b);
+		void   removeLastBlock();
 
 		TZX& operator=(const TZX& tzx);
 		
