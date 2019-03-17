@@ -2,6 +2,8 @@
 
 A program to create TSX files for MSX computers from WAV audio files.
 
+**DOWNLOAD:** You can find latest release [here](https://github.com/nataliapc/makeTSX/releases/).
+
 ***
 
 For further information access the wiki:  
