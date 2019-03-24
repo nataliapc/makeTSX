@@ -27,7 +27,7 @@ using namespace TZX_Class;
 using namespace WAV_Class;
 using namespace Rippers;
 
-#define getError() TXT_RED << TXT_BLINK << "[ERROR]" << TXT_RESET
+#define TXT_ERROR TXT_RED << TXT_BLINK << "[ERROR]" << TXT_RESET
 
 const char* START_TAG  = ">>================ ";
 const char* FINISH_TAG = "<<================ ";
@@ -45,7 +45,14 @@ bool wavnormalize = true;
 bool wavenveloppe = true;
 bool outnormalize = false;
 bool outenveloppe = false;
-
+// #4B modifiers (defaults)
+BYTE p0=2;
+BYTE p1=4;
+BYTE lv=0;
+BYTE tv=1;
+BYTE lb=1;
+BYTE tb=2;
+BYTE sbf=0;
 
 /**
  * @brief Main entry point
@@ -65,6 +72,14 @@ int main(int argc, const char* argv[])
 
 	//Arguments
 	for (int i=1; i<argc; i++) {
+		if (!strcasecmp(argv[i], "-h")) {
+			showUsage();
+			exit(1);
+		} else 
+		if (!strcasecmp(argv[i], "-h1")) {
+			showUsage1();
+			exit(1);
+		} else 
 		if (!strcasecmp(argv[i], "-i")) {
 			tsxmode = true;
 			tsxinfo = true;
@@ -84,6 +99,92 @@ int main(int argc, const char* argv[])
 		if (!strcasecmp(argv[i], "-b15")) {
 			wavmode = true;
 			onlyBlock15 = true;
+		} else
+		if (!strcasecmp(argv[i], "-p0")) {
+			wavmode = true;
+			p0 = 255;
+			if (i+1<argc) p0 = atoi(argv[i+1]);
+			if (!p0) p0=16;
+			if (p0 > 16) {
+				cout << TXT_ERROR << " Parameter '-p0 n' needs a valid 'n' number!" << endl << endl;
+				showUsage();
+				exit(1);
+			}
+			i++;
+			cout << "KCS 0 bit pulses: " << (int)p0 << endl;
+		} else
+		if (!strcasecmp(argv[i], "-p1")) {
+			wavmode = true;
+			p1 = 255;
+			if (i+1<argc) p1 = atoi(argv[i+1]);
+			if (!p1) p1=16;
+			if (p1 > 16) {
+				cout << TXT_ERROR << " Parameter '-p1 n' needs a valid 'n' number!" << endl << endl;
+				showUsage();
+				exit(1);
+			}
+			i++;
+			cout << "KCS 1 bit pulses: " << (int)p1 << endl;
+		} else
+		if (!strcasecmp(argv[i], "-lv")) {
+			wavmode = true;
+			lv = 255;
+			if (i+1<argc) lv = atoi(argv[i+1]);
+			if (lv > 1) {
+				cout << TXT_ERROR << " Parameter '-lv n' needs a valid 'n' number!" << endl << endl;
+				showUsage();
+				exit(1);
+			}
+			i++;
+			cout << "KCS Leading bit value: " << (int)lv << endl;
+		} else
+		if (!strcasecmp(argv[i], "-tv")) {
+			wavmode = true;
+			tv = 255;
+			if (i+1<argc) tv = atoi(argv[i+1]);
+			if (tv > 1) {
+				cout << TXT_ERROR << " Parameter '-tv n' needs a valid 'n' number!" << endl << endl;
+				showUsage();
+				exit(1);
+			}
+			i++;
+			cout << "KCS Trailing bit value: " << (int)tv << endl;
+		} else
+		if (!strcasecmp(argv[i], "-lb")) {
+			wavmode = true;
+			lb = 255;
+			if (i+1<argc) lb = atoi(argv[i+1]);
+			if (lb > 3) {
+				cout << TXT_ERROR << " Parameter '-lb n' needs a valid 'n' number!" << endl << endl;
+				showUsage();
+				exit(1);
+			}
+			i++;
+			cout << "KCS Leading bits: " << (int)lb << endl;
+		} else
+		if (!strcasecmp(argv[i], "-tb")) {
+			wavmode = true;
+			tb = 255;
+			if (i+1<argc) tb = atoi(argv[i+1]);
+			if (tb > 3) {
+				cout << TXT_ERROR << " Parameter '-tb n' needs a valid 'n' number!" << endl << endl;
+				showUsage();
+				exit(1);
+			}
+			i++;
+			cout << "KCS Trailing bits: " << (int)tb << endl;
+		} else
+		if (!strcasecmp(argv[i], "-sbf")) {
+			wavmode = true;
+			sbf = 255;
+			if (i+1<argc) sbf = atoi(argv[i+1]);
+			if (sbf > 1) {
+				cout << TXT_ERROR << " Parameter '-sbf n' needs a valid 'n' number!" << endl << endl;
+				showUsage();
+				exit(1);
+			}
+			i++;
+			cout << "KCS bits order: " << (sbf ? "MsB" : "LsB") << endl;
 		} else
 		if (!strcasecmp(argv[i], "-dn")) {
 			wavmode = true;
@@ -124,21 +225,21 @@ int main(int argc, const char* argv[])
 				tsxfile = argv[i];
 			}
 		} else {
-			cout << getError() << " Unknown switch: " << argv[i] << endl << endl;
+			cout << TXT_ERROR << " Unknown switch: " << argv[i] << endl << endl;
 			showUsage();
 			exit(1);
 		}
 	}
 	
 	if (tsxmode && wavmode) {
-		cout << getError() << " Incompatible switches at same time..." << endl << endl;
+		cout << TXT_ERROR << " Incompatible switches at same time..." << endl << endl;
 		showUsage();
 		exit(1);
 	}
 
 	if (tsxmode) {
 		if (tsxfile=="") {
-			cout << getError() << " Input filename for TSX/TZX needed [use -tsx switch]..." << endl << endl;
+			cout << TXT_ERROR << " Input filename for TSX/TZX needed [use -tsx switch]..." << endl << endl;
 			showUsage();
 			exit(1);
 		}
@@ -147,12 +248,12 @@ int main(int argc, const char* argv[])
 
 	if (wavmode) {
 		if (wavfile=="") {
-			cout << getError() << " Input filename for WAV needed [use -wav switch]..." << endl << endl;
+			cout << TXT_ERROR << " Input filename for WAV needed [use -wav switch]..." << endl << endl;
 			showUsage();
 			exit(-1);
 		}
 		if (tsxfile=="") {
-			cout << getError() << " Output filename for TSX/TZX needed [use -tsx switch]..." << endl << endl;
+			cout << TXT_ERROR << " Output filename for TSX/TZX needed [use -tsx switch]..." << endl << endl;
 			showUsage();
 			exit(1);
 		}
@@ -167,42 +268,60 @@ int main(int argc, const char* argv[])
  */
 void showInfo()
 {
-	cout << TXT_B_YELLOW;
-	cout << "====================================================" << endl;
-	cout << " makeTSX v" << MAKETSX_VER << " - WAV to TSX(~TZX 1.21) " << RELEASE_DATE << endl;
-	cout << " Using " << TZX_LIB << " by NataliaPC" << endl;
-	cout << "====================================================" << endl;
-	cout << TXT_RESET;
-	cout << endl;
+	cout << TXT_B_YELLOW
+		 << "====================================================" << endl
+		 << " makeTSX v" << MAKETSX_VER << " - WAV to TSX(~TZX 1.21) " << RELEASE_DATE << endl
+		 << " Using " << TZX_LIB << " by NataliaPC" << endl
+		 << "====================================================" << endl
+		 << TXT_RESET
+		 << endl;
 }
 
 /**
  * @brief 
  */
 void showUsage() {
-	cout << TXT_GREEN;
-	cout << "Usage:" << endl;
-	cout << TXT_RESET;
-	cout << "       makeTSX [switchesWAV] -wav <WAV_IN_FILE> -tsx <TSX_OUT_FILE>" << endl;
-	cout << "       makeTSX [switchesTSX] -tsx <TSX_IN_FILE>" << endl;
-	cout << TXT_GREEN;
-	cout << "SwitchesWAV:" << endl;
-	cout << TXT_RESET;
-	cout << "       -v    Verbose mode." << endl;
-	cout << "       -di   Disable interactive mode." << endl;
-	cout << "       -dp   Disable predictive mode." << endl;
-	cout << "       -dn   Disable normalize audio." << endl;
-	cout << "       -de   Disable enveloppe filter correction." << endl;
-	cout << "       -b15  Use only blocks #15(Direct Recording) & #20(Pause)." << endl;
-	cout << "       -outn Save the file 'wav_normalized.wav'." << endl;
-	cout << "       -oute Save the file 'wav_envelopped.wav'." << endl;
-	cout << TXT_GREEN;
-	cout << "SwitchesTSX:" << endl;
-	cout << TXT_RESET;
-	cout << "       -i    Show TSX/TZX verbose blocks info." << endl;
-	cout << "       -c    Dump TSX/TZX data blocks in hex-char format." << endl;
-	cout << "       -d    Dump TSX/TZX data blocks in hexadecimal format." << endl;
-	cout << endl;
+	cout << TXT_GREEN "Usage:" TXT_RESET << endl
+		 << "       makeTSX [switchesWAV] -wav <WAV_IN_FILE> -tsx <TSX_OUT_FILE>" << endl
+		 << "       makeTSX [switchesTSX] -tsx <TSX_IN_FILE>" << endl
+		 << TXT_GREEN "SwitchesWAV:" TXT_RESET << endl
+		 << "     -h      Show this page." << endl
+		 << "     -h1     Show a page with usage examples." << endl
+		 << "     -v      Verbose mode." << endl
+		 << "     -di     Disable interactive mode." << endl
+		 << "     -dp     Disable predictive mode." << endl
+		 << "     -dn     Disable normalize audio." << endl
+		 << "     -de     Disable enveloppe filter correction." << endl
+		 << "   " TXT_GREEN "Block#4B (KCS) modifiers" TXT_RESET << endl
+		 << "     -p0 n   Pulses in a ZERO bit {1-16 default:2}" << endl
+		 << "     -p1 n   Pulses in a ONE bit {1-16 default:4}" << endl
+		 << "     -lv n   Leading bits value {0/1 default:0}" << endl
+		 << "     -tv n   Trailing bits value {0/1 default:1}" << endl
+		 << "     -lb n   Check for 'n' leading bits {0-3 default:1}" << endl
+		 << "     -tb n   Check for 'n' trailing bits {0-3 default:2}" << endl
+		 << "     -sbf n  Significant bits first {0:Lsb 1:Msb default:0}" << endl
+		 << "   " TXT_GREEN "Other blocks" TXT_RESET << endl
+		 << "     -b15    Use only blocks #15(Direct Recording) & #20(Pause)." << endl
+		 << "   " << TXT_GREEN << "Export WAVs options" << TXT_RESET << endl
+		 << "     -outn   Save the file 'wav_normalized.wav'." << endl
+		 << "     -oute   Save the file 'wav_envelopped.wav'." << endl
+		 << TXT_GREEN "SwitchesTSX:" TXT_RESET << endl
+		 << "     -i      Show TSX/TZX verbose blocks info." << endl
+		 << "     -c      Dump TSX/TZX data blocks in hex-char format." << endl
+		 << "     -d      Dump TSX/TZX data blocks in hexadecimal format." << endl
+		 << endl;
+}
+
+/**
+ * @brief 
+ */
+void showUsage1() {
+	cout << TXT_GREEN "Extract " TXT_B_WHITE "MSX" TXT_GREEN " blocks:" TXT_RESET << endl
+		 << "       makeTSX -wav input.wav -tsx output.tsx" << endl
+		 << "       makeTSX -wav input.wav -tsx output.tsx -p0 2 -p1 4 -lv 0 -lb 1 -tv 1 -tb 2" << endl
+		 << TXT_GREEN "Extract " TXT_B_WHITE "SORD M5" TXT_GREEN " blocks:" TXT_RESET << endl
+		 << "       makeTSX -wav input.wav -tsx output.tsx -p0 2 -p1 2 -lv 0 -lb 1 -tv 1 -tb 1" << endl
+		 << endl;
 }
 
 /**
@@ -212,30 +331,30 @@ void doTsxMode()
 {
 	TZX *tsx = new TZX(tsxfile);
 	if (!tsx || !tsx->getNumBlocks()) {
-		cout << getError() << " Error loading TSX file..." << endl << endl;
+		cout << TXT_ERROR << " Error loading TSX file..." << endl << endl;
 		exit(1);
 	}
 	if (tsxinfo) {
-		cout << TXT_GREEN;
-		cout << "TSX/TZX Blocks info:" << endl;
-		cout << "====================" << endl;
-		cout << TXT_RESET;
+		cout << TXT_GREEN
+			 << "TSX/TZX Blocks info:" << endl
+			 << "====================" << endl
+			 << TXT_RESET;
 		tsx->showInfo();
 		cout << endl;
 	}
 	if (tsxhexchr) {
-		cout << TXT_GREEN;
-		cout << "TSX/TZX Blocks Hex-Char dump" << endl;
-		cout << "=============================" << endl;
-		cout << TXT_RESET;
+		cout << TXT_GREEN
+			 << "TSX/TZX Blocks Hex-Char dump" << endl
+			 << "=============================" << endl
+			 << TXT_RESET;
 		tsx->hexCharDump();
 		cout << endl;
 	}
 	if (tsxdump) {
-		cout << TXT_GREEN;
-		cout << "TSX/TZX Blocks dump" << endl;
-		cout << "====================" << endl;
-		cout << TXT_RESET;
+		cout << TXT_GREEN
+			 << "TSX/TZX Blocks dump" << endl
+			 << "====================" << endl
+			 << TXT_RESET;
 		tsx->hexDump();
 		cout << endl;
 	}
@@ -275,15 +394,16 @@ void doWavMode()
 
 	//Check Input WAV file
 	if (!wav || !wav->getSize()) {
-		cout << getError() << " Error loading WAV file..." << endl << endl;
+		cout << TXT_ERROR << " Error loading WAV file..." << endl << endl;
 		exit(1);
 	}
+	cout << endl;
 	wav->showInfo();
 	if (wav->header->fmtSize!=16 ||
 		wav->header->wFormatTag!=1 ||
 		wav->header->nChannels!=1 ||
 		(wav->header->wBitsPerSample!=8 && wav->header->wBitsPerSample!=16)) {
-		cout << endl << getError() << " WAV file must be in PCM/Mono and 8/16bits mode..." << endl << endl;
+		cout << endl << TXT_ERROR << " WAV file must be in PCM/Mono and 8/16bits mode..." << endl << endl;
 		exit(1);
 	}
 	cout << endl;
@@ -320,7 +440,7 @@ void doWavMode()
 	B13_PulseSequence_Ripper   *seq13 = new B13_PulseSequence_Ripper(wav);
 	B15_DirectRecording_Ripper *drc15 = new B15_DirectRecording_Ripper(wav);
 	B20_Silence_Ripper         *sil20 = new B20_Silence_Ripper(wav);
-	MSX4B_Ripper               *msx4b = new MSX4B_Ripper(wav);
+	MSX4B_Ripper               *msx4b = new MSX4B_Ripper(wav, p0, p1, lv, tv, lb, tb, sbf);
 	//Opera4B_Ripper             *ops4b = new Opera4B_Ripper(wav);
 	//Dragon4B_Ripper            *drg4b = new Dragon4B_Ripper(wav);
 

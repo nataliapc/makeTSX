@@ -20,6 +20,8 @@ namespace Rippers {
 	#define ONE_PULSE				(bytesPerPulse(bauds))
 	#define ZERO_PULSE				(bytesPerPulse(bauds)*2)
 
+	#define bit2set(mask)			(this->sigBitsFirst ? 1<<(7-mask) : 1<<mask)
+
 	#define NEXTPULSES2(pos)		" [" << states[pos] << " " << states[pos+1] << "]"
 	#define NEXTPULSES(pos)			" [" << states[pos] << " " << states[pos+1] << " " << states[pos+2] << " " << states[pos+3] << "]"
 
@@ -51,13 +53,14 @@ namespace Rippers {
 	class MSX4B_Ripper : public BlockRipper
 	{
 	public:
-		MSX4B_Ripper(WAV *wav);
+		MSX4B_Ripper(WAV *wav, BYTE p0=2, BYTE p1=4, BYTE lv=0, BYTE tv=1, BYTE lb=1, BYTE tb=2, BYTE sbf=0);
 		MSX4B_Ripper(const MSX4B_Ripper& other);
 		~MSX4B_Ripper();
 		bool detectBlock() override;
 	protected:
 		bool  detectSilence(DWORD posIni) override;
 		DWORD predictiveBitsForward(DWORD posIni, int8_t currentBit, bool bitChoice, bool useStartBit);
+		DWORD checkBitN(DWORD posIni, BYTE bit);
 		DWORD checkBit0(DWORD posIni);
 		DWORD checkBit1(DWORD posIni);
 		virtual DWORD checkPilot(DWORD posIni);
@@ -68,6 +71,17 @@ namespace Rippers {
 	protected:
 		const static DWORD THRESHOLD_HEADER = 500;
 
+		bool isMSX;
+		DWORD bauds = 0;
+
+		BYTE pulses0;				// Pulses in a ZERO bit {1-16 default:2}
+		BYTE pulses1;				// Pulses in a ONE bit {1-16 default:4}
+		BYTE leadingValue;			// Leading bits value {0/1 default:0}
+		BYTE trailingValue;			// Trailing bits value {0/1 default:1}
+		BYTE leadingBits;			// Check for 'n' leading bits {0-3 default:2}
+		BYTE trailingBits;			// Check for 'n' trailing bits {0-3 default:1}
+		BYTE sigBitsFirst;			// Significant bits first {0:Lsb 1:Msb default:0}
+
 		struct BlockInfo {
 			WORD pausems;			//Pause after this block in milliseconds
 			WORD pilot;				//Duration of a PILOT pulse in T-states {same as ONE pulse}
@@ -77,7 +91,6 @@ namespace Rippers {
 			BYTE bitcfg = 0x24;		//Default MSX bitcfg values
 			BYTE bytecfg = 0x54;	//Default MSX bytecfg values
 		} blockInfo;
-		DWORD bauds = 0;
 	};
 
 }

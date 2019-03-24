@@ -12,6 +12,7 @@
 
 void showInfo();
 void showUsage();
+void showUsage1();
 const char* getError();
 
 void doTsxMode();
