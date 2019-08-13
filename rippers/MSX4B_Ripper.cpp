@@ -93,7 +93,7 @@ bool MSX4B_Ripper::detectBlock()
 		if (ABS(bauds, 1200) < 15) roundedBauds = 1200;
 		if (ABS(bauds, 2400) < 15) roundedBauds = 2400;
 		cout << WAVTIME(pos) << TXT_B_GREEN << "Detected #4B " << type << " Pilot tone (" << std::dec << bauds << " bauds)" << TXT_RESET << endl;
-		if (isMSX && bauds == roundedBauds) {
+		if (isMSX && bauds != roundedBauds) {
 			cout << WAVTIME(pos) << MSG_WARNING << ": No standard baudrate!" << endl;
 		}
 		blockInfo.pilot = MSX_PULSE(bauds);
@@ -175,7 +175,11 @@ DWORD MSX4B_Ripper::checkPilot(DWORD posIni)
 		this->bauds = (DWORD)((float)WAVSampleRate / 4.f / pulseLen);
 		if (states[posIni] > THRESHOLD_SILENCE) break;
 		if (pulses>20 && checkBitN(posIni, this->leadingValue) && 
-			(!predictiveMode || predictiveBitsForward(posIni+startBitPulses, -1, 0, true))) break;
+			(!predictiveMode || predictiveBitsForward(posIni+startBitPulses, -1, 0, true)))
+			{
+				pulses++;
+				break;
+			} 
 		pulseSum += states[posIni++];
 		pulses++;
 	}
