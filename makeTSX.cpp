@@ -100,6 +100,10 @@ int main(int argc, const char* argv[])
 			wavmode = true;
 			onlyBlock15 = true;
 		} else
+		if (!strcasecmp(argv[i], "-nopilot")) {
+			cout << TXT_ERROR << " Parameter '-nopilot' not implemented yet!" << endl << endl;
+			exit(1);
+		} else
 		if (!strcasecmp(argv[i], "-p0")) {
 			wavmode = true;
 			p0 = 255;
@@ -285,30 +289,31 @@ void showUsage() {
 		 << "       makeTSX [switchesWAV] -wav <WAV_IN_FILE> -tsx <TSX_OUT_FILE>" << endl
 		 << "       makeTSX [switchesTSX] -tsx <TSX_IN_FILE>" << endl
 		 << TXT_GREEN "SwitchesWAV:" TXT_RESET << endl
-		 << "     -h      Show this page." << endl
-		 << "     -h1     Show a page with usage examples." << endl
-		 << "     -v      Verbose mode." << endl
-		 << "     -di     Disable interactive mode." << endl
-		 << "     -dp     Disable predictive mode." << endl
-		 << "     -dn     Disable normalize audio." << endl
-		 << "     -de     Disable enveloppe filter correction." << endl
+		 << "     -h       Show this page." << endl
+		 << "     -h1      Show a page with usage examples." << endl
+		 << "     -v       Verbose mode." << endl
+		 << "     -di      Disable interactive mode." << endl
+		 << "     -dp      Disable predictive mode." << endl
+		 << "     -dn      Disable normalize audio." << endl
+		 << "     -de      Disable enveloppe filter correction." << endl
 		 << "   " TXT_GREEN "Block#4B (KCS) modifiers" TXT_RESET << endl
-		 << "     -p0 n   Pulses in a ZERO bit {1-16 default:2}" << endl
-		 << "     -p1 n   Pulses in a ONE bit {1-16 default:4}" << endl
-		 << "     -lv n   Leading bits value {0/1 default:0}" << endl
-		 << "     -tv n   Trailing bits value {0/1 default:1}" << endl
-		 << "     -lb n   Check for 'n' leading bits {0-3 default:1}" << endl
-		 << "     -tb n   Check for 'n' trailing bits {0-3 default:2}" << endl
-		 << "     -sbf n  Significant bits first {0:Lsb 1:Msb default:0}" << endl
+		 << "     -nopilot Create blocks without pilot pulses." << endl
+		 << "     -p0 n    Pulses in a ZERO bit {1-16 default:2}" << endl
+		 << "     -p1 n    Pulses in a ONE bit {1-16 default:4}" << endl
+		 << "     -lv n    Leading bits value {0/1 default:0}" << endl
+		 << "     -tv n    Trailing bits value {0/1 default:1}" << endl
+		 << "     -lb n    Check for 'n' leading bits {0-3 default:1}" << endl
+		 << "     -tb n    Check for 'n' trailing bits {0-3 default:2}" << endl
+		 << "     -sbf n   Significant bits first {0:Lsb 1:Msb default:0}" << endl
 		 << "   " TXT_GREEN "Other blocks" TXT_RESET << endl
-		 << "     -b15    Use only blocks #15(Direct Recording) & #20(Pause)." << endl
+		 << "     -b15     Use only blocks #15(Direct Recording) & #20(Pause)." << endl
 		 << "   " << TXT_GREEN << "Export WAVs options" << TXT_RESET << endl
-		 << "     -outn   Save the file 'wav_normalized.wav'." << endl
-		 << "     -oute   Save the file 'wav_envelopped.wav'." << endl
+		 << "     -outn    Save the file 'wav_normalized.wav'." << endl
+		 << "     -oute    Save the file 'wav_envelopped.wav'." << endl
 		 << TXT_GREEN "SwitchesTSX:" TXT_RESET << endl
-		 << "     -i      Show TSX/TZX verbose blocks info." << endl
-		 << "     -c      Dump TSX/TZX data blocks in hex-char format." << endl
-		 << "     -d      Dump TSX/TZX data blocks in hexadecimal format." << endl
+		 << "     -i       Show TSX/TZX verbose blocks info." << endl
+		 << "     -c       Dump TSX/TZX data blocks in hex-char format." << endl
+		 << "     -d       Dump TSX/TZX data blocks in hexadecimal format." << endl
 		 << endl;
 }
 
@@ -316,12 +321,31 @@ void showUsage() {
  * @brief 
  */
 void showUsage1() {
-	cout << TXT_GREEN "Extract " TXT_B_WHITE "MSX" TXT_GREEN " blocks:" TXT_RESET << endl
-		 << "       makeTSX -wav input.wav -tsx output.tsx" << endl
-		 << "       makeTSX -wav input.wav -tsx output.tsx -p0 2 -p1 4 -lv 0 -lb 1 -tv 1 -tb 2" << endl
-		 << TXT_GREEN "Extract " TXT_B_WHITE "SORD M5" TXT_GREEN " blocks:" TXT_RESET << endl
-		 << "       makeTSX -wav input.wav -tsx output.tsx -p0 2 -p1 2 -lv 0 -lb 1 -tv 1 -tb 1" << endl
-		 << endl;
+	cout << TXT_B_WHITE "Usage examples:" << endl 
+		 << endl
+		 << TXT_GREEN "Extract " TXT_B_WHITE "MSX" TXT_GREEN " blocks:" TXT_RESET << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx" << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 4 -lv 0 -lb 1 -tv 1 -tb 2" << endl 
+		 << endl
+		 << TXT_GREEN "Extract " TXT_B_WHITE "MSX Opera" TXT_GREEN " blocks:" TXT_RESET << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -nopilot" << endl 
+		 << endl
+		 << TXT_GREEN "Extract " TXT_B_WHITE "MSX \"Elite\"/\"Howard the Duck\"" TXT_GREEN " blocks:" TXT_RESET << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -tb 3" << endl 
+		 << endl
+		 << TXT_GREEN "Extract " TXT_B_WHITE "SVI-318/328" TXT_GREEN " blocks:" TXT_RESET << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 2 -lv 0 -lb 0 -tv 0 -tb 1 -sbf 1 -nopilot" << endl 
+		 << endl
+		 << TXT_GREEN "Extract " TXT_B_WHITE "Dragon/CoCo" TXT_GREEN " blocks:" TXT_RESET << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 2 -lv 0 -lb 0 -tv 0 -tb 0 -nopilot" << endl 
+		 << endl
+		 << TXT_GREEN "Extract " TXT_B_WHITE "Atom/BBC micro" TXT_GREEN " blocks:" TXT_RESET << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 4 -lv 0 -lb 1 -tv 1 -tb 1" << endl 
+		 << endl
+		 << TXT_GREEN "Extract " TXT_B_WHITE "Sord M5" TXT_GREEN " blocks:" TXT_RESET << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 2 -lv 0 -lb 1 -tv 1 -tb 1" << endl 
+		 << endl
+	;
 }
 
 /**
