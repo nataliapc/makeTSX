@@ -37,6 +37,7 @@ const char* END_TAG    = "<<-------------------- ";
 string tsxfile;
 string wavfile;
 bool tsxmode = false, wavmode = false;
+bool onlyBlock13 = false;
 bool onlyBlock15 = false;
 bool tsxinfo = false;
 bool tsxdump = false;
@@ -75,11 +76,11 @@ int main(int argc, const char* argv[])
 		if (!strcasecmp(argv[i], "-h")) {
 			showUsage();
 			exit(1);
-		} else 
+		} else
 		if (!strcasecmp(argv[i], "-h1")) {
 			showUsage1();
 			exit(1);
-		} else 
+		} else
 		if (!strcasecmp(argv[i], "-i")) {
 			tsxmode = true;
 			tsxinfo = true;
@@ -96,8 +97,14 @@ int main(int argc, const char* argv[])
 			wavmode = true;
 			BlockRipper::setVerboseMode(true);
 		} else
+		if (!strcasecmp(argv[i], "-b13")) {
+      wavmode = true;
+      onlyBlock13 = true;
+      onlyBlock15 = false;
+    } else
 		if (!strcasecmp(argv[i], "-b15")) {
 			wavmode = true;
+			onlyBlock13 = false;
 			onlyBlock15 = true;
 		} else
 		if (!strcasecmp(argv[i], "-nopilot")) {
@@ -234,7 +241,7 @@ int main(int argc, const char* argv[])
 			exit(1);
 		}
 	}
-	
+
 	if (tsxmode && wavmode) {
 		cout << TXT_ERROR << " Incompatible switches at same time..." << endl << endl;
 		showUsage();
@@ -268,7 +275,7 @@ int main(int argc, const char* argv[])
 }
 
 /**
- * @brief 
+ * @brief
  */
 void showInfo()
 {
@@ -282,7 +289,7 @@ void showInfo()
 }
 
 /**
- * @brief 
+ * @brief
  */
 void showUsage() {
 	cout << TXT_GREEN "Usage:" TXT_RESET << endl
@@ -306,6 +313,7 @@ void showUsage() {
 		 << "     -tb n    Check for 'n' trailing bits {0-3 default:2}" << endl
 		 << "     -sbf n   Significant bits first {0:Lsb 1:Msb default:0}" << endl
 		 << "   " TXT_GREEN "Other blocks" TXT_RESET << endl
+		 << "     -b13     Use only blocks #13(Pulse Sequence) & #20(Pause)." << endl
 		 << "     -b15     Use only blocks #15(Direct Recording) & #20(Pause)." << endl
 		 << "   " << TXT_GREEN << "Export WAVs options" << TXT_RESET << endl
 		 << "     -outn    Save the file 'wav_normalized.wav'." << endl
@@ -318,38 +326,38 @@ void showUsage() {
 }
 
 /**
- * @brief 
+ * @brief
  */
 void showUsage1() {
-	cout << TXT_B_WHITE "Usage examples:" << endl 
+	cout << TXT_B_WHITE "Usage examples:" << endl
 		 << endl
 		 << TXT_GREEN "Extract " TXT_B_WHITE "MSX" TXT_GREEN " blocks:" TXT_RESET << endl
 		 << "    makeTSX -wav in.wav -tsx out.tsx" << endl
-		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 4 -lv 0 -lb 1 -tv 1 -tb 2" << endl 
+		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 4 -lv 0 -lb 1 -tv 1 -tb 2" << endl
 		 << endl
 		 << TXT_GREEN "Extract " TXT_B_WHITE "MSX Opera" TXT_GREEN " blocks:" TXT_RESET << endl
-		 << "    makeTSX -wav in.wav -tsx out.tsx -nopilot" << endl 
+		 << "    makeTSX -wav in.wav -tsx out.tsx -nopilot" << endl
 		 << endl
 		 << TXT_GREEN "Extract " TXT_B_WHITE "MSX \"Elite\"/\"Howard the Duck\"" TXT_GREEN " blocks:" TXT_RESET << endl
-		 << "    makeTSX -wav in.wav -tsx out.tsx -tb 3" << endl 
+		 << "    makeTSX -wav in.wav -tsx out.tsx -tb 3" << endl
 		 << endl
 		 << TXT_GREEN "Extract " TXT_B_WHITE "SVI-318/328" TXT_GREEN " blocks:" TXT_RESET << endl
-		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 2 -lv 0 -lb 0 -tv 0 -tb 1 -sbf 1 -nopilot" << endl 
+		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 2 -lv 0 -lb 0 -tv 0 -tb 1 -sbf 1 -nopilot" << endl
 		 << endl
 		 << TXT_GREEN "Extract " TXT_B_WHITE "Dragon/CoCo" TXT_GREEN " blocks:" TXT_RESET << endl
-		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 2 -lv 0 -lb 0 -tv 0 -tb 0 -nopilot" << endl 
+		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 2 -lv 0 -lb 0 -tv 0 -tb 0 -nopilot" << endl
 		 << endl
 		 << TXT_GREEN "Extract " TXT_B_WHITE "Atom/BBC micro" TXT_GREEN " blocks:" TXT_RESET << endl
-		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 4 -lv 0 -lb 1 -tv 1 -tb 1" << endl 
+		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 4 -lv 0 -lb 1 -tv 1 -tb 1" << endl
 		 << endl
 		 << TXT_GREEN "Extract " TXT_B_WHITE "Sord M5" TXT_GREEN " blocks:" TXT_RESET << endl
-		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 2 -lv 0 -lb 1 -tv 1 -tb 1" << endl 
+		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 2 -lv 0 -lb 1 -tv 1 -tb 1" << endl
 		 << endl
 	;
 }
 
 /**
- * @brief 
+ * @brief
  */
 void doTsxMode()
 {
@@ -387,7 +395,7 @@ void doTsxMode()
 
 
 /**
- * @brief 
+ * @brief
  */
 Block32* addArchiveBlock()
 {
@@ -407,7 +415,7 @@ Block32* addArchiveBlock()
 }
 
 /**
- * @brief 
+ * @brief
  */
 void doWavMode()
 {
@@ -431,7 +439,7 @@ void doWavMode()
 		exit(1);
 	}
 	cout << endl;
-	
+
 	//Add 1st block with text info about this ripper
 	tsx->addBlock(new Block30(MAKETSX_TEXTBLOCK));
 	//Add the default Archive block for this tape
@@ -495,6 +503,18 @@ void doWavMode()
 			if (!sil20->eof()) cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
 
 		} else
+
+		// =========================================================
+    // Block 13 forced  (Oric tapes)
+      if (onlyBlock13 && seq13->detectBlock()) {
+        Block13 *b = (Block13*) seq13->getDetectedBlock();
+        cout << TXT_GREEN << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " PULSE SEQUENCE RIPPED" << TXT_RESET << endl;
+        tsx->addBlock(b);
+       if (!seq13->eof()) cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
+
+    } else
+
+
 		// =========================================================
 		// Block 15 Pure Tone
 		if (onlyBlock15 && drc15->detectBlock()) {
@@ -528,7 +548,7 @@ void doWavMode()
 		// =========================================================
 		// Block 4B KCS (MSX specific implementation)
 		if (msx4b->detectBlock()) {
-			
+
 			Block4B *b = (Block4B*) msx4b->getDetectedBlock();
 			cout << TXT_GREEN << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " MSX KCS RIPPED" << TXT_RESET << endl;
 			//If first block is B4B_MSX_KCS we must add a B35_CUSTOM_INFO block before
@@ -546,7 +566,7 @@ void doWavMode()
 		// =========================================================
 		// Block 4B OPERA (OPERA Soft Protected block)
 /*		if (ops4b->detectBlock()) {
-			
+
 			Block4B *b = (Block4B*) ops4b->getDetectedBlock();
 			cout << TXT_GREEN "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " OPERA SOFT RIPPED" TXT_RESET << endl;
 			tsx->addBlock(b);
