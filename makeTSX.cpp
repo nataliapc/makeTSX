@@ -503,18 +503,16 @@ void doWavMode()
 			if (!sil20->eof()) cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
 
 		} else
-
 		// =========================================================
-    // Block 13 forced  (Oric tapes)
-      if (onlyBlock13 && seq13->detectBlock()) {
-        Block13 *b = (Block13*) seq13->getDetectedBlock();
-        cout << TXT_GREEN << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " PULSE SEQUENCE RIPPED" << TXT_RESET << endl;
-        tsx->addBlock(b);
-       if (!seq13->eof()) cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
+		// Block 13 forced
+		if (onlyBlock13 && seq13->detectBlock()) {
 
-    } else
+			Block13 *b = (Block13*) seq13->getDetectedBlock();
+			cout << TXT_GREEN << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " PULSE SEQUENCE RIPPED" << TXT_RESET << endl;
+			tsx->addBlock(b);
+			if (!seq13->eof()) cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
 
-
+	    } else
 		// =========================================================
 		// Block 15 Pure Tone
 		if (onlyBlock15 && drc15->detectBlock()) {
