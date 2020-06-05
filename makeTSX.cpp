@@ -46,6 +46,7 @@ bool wavnormalize = true;
 bool wavenveloppe = true;
 bool outnormalize = false;
 bool outenveloppe = false;
+bool operadetect = false;
 // #4B modifiers (defaults)
 BYTE p0=2;
 BYTE p1=4;
@@ -98,14 +99,17 @@ int main(int argc, const char* argv[])
 			BlockRipper::setVerboseMode(true);
 		} else
 		if (!strcasecmp(argv[i], "-b13")) {
-      wavmode = true;
-      onlyBlock13 = true;
-      onlyBlock15 = false;
-    } else
+			wavmode = true;
+			onlyBlock13 = true;
+			onlyBlock15 = false;
+		} else
 		if (!strcasecmp(argv[i], "-b15")) {
 			wavmode = true;
 			onlyBlock13 = false;
 			onlyBlock15 = true;
+		} else
+		if (!strcasecmp(argv[i], "-opera")) {
+			operadetect = true;
 		} else
 		if (!strcasecmp(argv[i], "-nopilot")) {
 			cout << TXT_ERROR << " Parameter '-nopilot' not implemented yet!" << endl << endl;
@@ -297,7 +301,7 @@ void showUsage() {
 		 << "       makeTSX [switchesTSX] -tsx <TSX_IN_FILE>" << endl
 		 << TXT_GREEN "SwitchesWAV:" TXT_RESET << endl
 		 << "     -h       Show this page." << endl
-		 << "     -h1      Show a page with usage examples." << endl
+		 << "     -h1      Show a page with KCS/MSX usage examples." << endl
 		 << "     -v       Verbose mode." << endl
 		 << "     -di      Disable interactive mode." << endl
 		 << "     -dp      Disable predictive mode." << endl
@@ -315,6 +319,7 @@ void showUsage() {
 		 << "   " TXT_GREEN "Other blocks" TXT_RESET << endl
 		 << "     -b13     Use only blocks #13(Pulse Sequence) & #20(Pause)." << endl
 		 << "     -b15     Use only blocks #15(Direct Recording) & #20(Pause)." << endl
+		 << "     -opera   Enable 'OperaSoft' block detection." << endl
 		 << "   " << TXT_GREEN << "Export WAVs options" << TXT_RESET << endl
 		 << "     -outn    Save the file 'wav_normalized.wav'." << endl
 		 << "     -oute    Save the file 'wav_envelopped.wav'." << endl
@@ -335,8 +340,8 @@ void showUsage1() {
 		 << "    makeTSX -wav in.wav -tsx out.tsx" << endl
 		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 4 -lv 0 -lb 1 -tv 1 -tb 2" << endl
 		 << endl
-		 << TXT_GREEN "Extract " TXT_B_WHITE "MSX Opera" TXT_GREEN " blocks:" TXT_RESET << endl
-		 << "    makeTSX -wav in.wav -tsx out.tsx -nopilot" << endl
+		 << TXT_GREEN "Extract " TXT_B_WHITE "MSX OperaSoft" TXT_GREEN " blocks:" TXT_RESET << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -opera" << endl
 		 << endl
 		 << TXT_GREEN "Extract " TXT_B_WHITE "MSX \"Elite\"/\"Howard the Duck\"" TXT_GREEN " blocks:" TXT_RESET << endl
 		 << "    makeTSX -wav in.wav -tsx out.tsx -tb 3" << endl
@@ -473,7 +478,7 @@ void doWavMode()
 	B15_DirectRecording_Ripper *drc15 = new B15_DirectRecording_Ripper(wav);
 	B20_Silence_Ripper         *sil20 = new B20_Silence_Ripper(wav);
 	MSX4B_Ripper               *msx4b = new MSX4B_Ripper(wav, p0, p1, lv, tv, lb, tb, sbf);
-	//Opera4B_Ripper             *ops4b = new Opera4B_Ripper(wav);
+	Opera4B_Ripper             *ops4b = new Opera4B_Ripper(wav);
 	//Dragon4B_Ripper            *drg4b = new Dragon4B_Ripper(wav);
 
 	cout << "Detecting pulse lengths..." << endl << endl;
@@ -563,14 +568,12 @@ void doWavMode()
 		} else
 		// =========================================================
 		// Block 4B OPERA (OPERA Soft Protected block)
-/*		if (ops4b->detectBlock()) {
-
-			Block4B *b = (Block4B*) ops4b->getDetectedBlock();
-			cout << TXT_GREEN "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " OPERA SOFT RIPPED" TXT_RESET << endl;
-			tsx->addBlock(b);
-			if (!ops4b->eof()) cout << TXT_GREEN ">>------------------- START DETECTING BLOCK" TXT_RESET << endl;
-
-		} else*/
+		if (operadetect && ops4b->detectBlock()) {
+				Block4B *b = (Block4B*) ops4b->getDetectedBlock();
+				cout << TXT_GREEN "<<------------------- BLOCK #" << std::hex << (int)(b->getId()) << " OPERA SOFT RIPPED" TXT_RESET << endl;
+				tsx->addBlock(b);
+				if (!ops4b->eof()) cout << TXT_GREEN ">>------------------- START DETECTING BLOCK" TXT_RESET << endl;
+		} else
 		// =========================================================
 		// Block 13 Pulse Sequence
 		if (seq13->detectBlock()) {

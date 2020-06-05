@@ -110,6 +110,9 @@ namespace TZX_Blocks
 	public:
 		Block10(WORD pause, char* data, size_t size);
 		Block10(istream &);
+		BYTE getCurrentChecksum();
+		BYTE getChecksum(WORD, WORD);
+		bool checksumOk();
 		string toString() override;
 	};
 

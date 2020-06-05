@@ -11,6 +11,12 @@ using namespace std;
 using namespace WAV_Class;
 using namespace Rippers;
 
+// getByte() return values
+#define RET_END					0xFFF0
+#define RET_ABORT				0xFFF1
+#define RET_PILOT				0xFFFE
+#define RET_SILENCE				0xFFFF
+
 
 Opera4B_Ripper::Opera4B_Ripper(WAV *wav) : MSX4B_Ripper(wav)
 {
@@ -32,11 +38,9 @@ bool Opera4B_Ripper::detectBlock()
 	memset(&blockInfo, 0, sizeof(BlockInfo));
 	blockInfo.bitcfg = 0x24;
 	blockInfo.bytecfg = 0x54;
+	DWORD posOpera = checkPilot(pos);
 
-	//Calculate bauds from pilot pulses
-	DWORD pilotBytes = checkPilot(pos);
-
-	if (bauds && pilotBytes) {
+	if (bauds && posOpera) {
 		WORD roundedBauds = bauds;
 		if (ABS(bauds, 1200) < 15) roundedBauds = 1200;
 		if (ABS(bauds, 2400) < 15) roundedBauds = 2400;
@@ -50,13 +54,14 @@ bool Opera4B_Ripper::detectBlock()
 		blockInfo.bit1len = MSX_PULSE(bauds);
 
 		//Get Data bytes
+		pos=posOpera;
 		DWORD posIni = pos;
 		WORD value = 0;
 		vector<BYTE> buff;
 		while (!eof()) {
 			value = getByte();
-			if (value==0xFFFF) break;
-			if (verboseMode) cout << WAVTIME(pos) << std::hex << "Pos:[0x" << buff.size() << "]  Detected BYTE #" << std::hex << value << " (" << std::dec << value << ")" << endl;
+			if (value>=RET_END) break;
+				if (verboseMode) cout << WAVTIME(pos) << std::hex << "Pos:[0x" << buff.size() << "]  Detected BYTE #" << std::hex << value << " (" << std::dec << value << ")" << endl;
 			buff.push_back(value);
 		}
 		cout << WAVTIME(pos) << "Extracted data: " << (buff.size()) << " bytes" << endl;
@@ -98,26 +103,30 @@ bool Opera4B_Ripper::detectBlock()
 
 DWORD Opera4B_Ripper::checkPilot(DWORD posIni)
 {
-//	DWORD sumIni = samples[posIni];
-	bauds = 1200;
-
-	float pulseSum = states[posIni+4]*44.f;
+	float pulseSum = states[posIni++];
 	float bytes = 1.f;
 	float bytesLen = 0.f;
-//	while (!eof(posIni)) {
-		bytesLen = pulseSum / bytes;
-		bauds = (DWORD)((float)WAVSampleRate / bytesLen * 11.f);
-//		if (states[posIni] > THRESHOLD_SILENCE) break;
-//cout << posIni << endl;
-		posIni = predictiveBitsForward(posIni+2, -1, 0, true);
-//cout << WAVTIME(posIni) << "bauds:" << std::dec << bauds << " bytes:" << (DWORD)bytes << " bytesLen:" << (DWORD)bytesLen << endl;
-//		if (bytes > 200 || !posIni) break;
-//		pulseSum = samples[posIni] - sumIni;
-		bytes++;
-//	}
-	//At least 100 pilot pulses
-//	if (bytesLen==0 || bytes < 200) return 0;
-	return bytes;
+	bauds = 1200;
+
+	while (!eof(posIni)) {
+		if (MSX4B_Ripper::checkBitN(posIni,0)) {
+			int blockPos=posIni;
+			for (int bucle=0 ;bucle <42 ;bucle++) {
+				bytesLen = pulseSum / bytes;
+				bauds = (DWORD)((float)WAVSampleRate / 4.f /bytesLen);
+				bytes++;
+				pulseSum += states[posIni++];
+			}
+			return blockPos;
+		} else {
+			if (MSX4B_Ripper::checkBitN(posIni,1)) {
+				posIni++;
+			} else {
+				break;
+			}
+		}		
+	}
+	return false;
 }
 
 WORD Opera4B_Ripper::getByte()

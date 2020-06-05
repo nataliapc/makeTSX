@@ -219,12 +219,40 @@ Block10::Block10(istream &is)
 	put(is, len);
 }
 
+BYTE Block10::getCurrentChecksum()
+{
+	bytes->Seek(bytes->getSize()-1);
+	return bytes->ReadUByte();
+}
+
+BYTE Block10::getChecksum(WORD ini, WORD len)
+{
+	BYTE checksum = 0;
+	bytes->Seek(ini);
+	while (len--) {
+		checksum ^= bytes->ReadUByte();
+	}
+	return checksum;
+}
+
+bool Block10::checksumOk()
+{
+	return getCurrentChecksum() == getChecksum(getHeadSize(), getSize()-getHeadSize()-1);
+}
+
 string Block10::toString()
 {
 	std::stringstream stream;
 	stream << Block::toString() << " - Standard speed data block";
 	bytes->Seek(3);
-	stream << " - DataLen: " << (bytes->ReadUInt16()) << " bytes";
+	stream << " - DataLen: " << (bytes->ReadUInt16()) << " bytes\n";
+	stream << "\t\tChecksum: 0x" << std::setw(2) << std::hex << (int)getCurrentChecksum() << std::dec;
+	if (checksumOk()) {
+		stream << TXT_B_YELLOW << " OK" << TXT_RESET;
+	} else {
+		stream << " " << BG_RED << TXT_B_YELLOW << TXT_BLINK << "FAIL" << TXT_RESET << 
+				"(expected 0x" << std::setw(2) << std::hex << (int)getChecksum(getHeadSize(), getSize()-getHeadSize()-1) << std::dec << ")";
+	}
 
 	return stream.str();
 }
