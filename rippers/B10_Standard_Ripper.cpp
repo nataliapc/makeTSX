@@ -112,18 +112,20 @@ bool B10_Standard_Ripper::detectBlock()
 		while (!eof()) {
 			value = getByte();
 			if (value==0xFFFF) {	//Found silence or EOF
-				chksum = lastChksum;
 				break;
 			}
 			lastByte = value;
 			buff.push_back(value);
-			if (lastByte==chksum && checkPilot(pos)) break; //Blocks without silence pause?
+			if (lastByte==chksum && checkPilot(pos)) { //Blocks without silence pause?
+				break;
+			}
 			if (buff.size()>0) {
 				lastChksum = chksum;
 				chksum ^= (lastByte & 0xFF);
 			}
 			if (verboseMode) cout << WAVTIME(pos) << std::hex << TXT_B_WHITE << "Pos:[0x" << buff.size() << "] Detected BYTE #" << std::hex << value << " (" << std::dec << value << ")" << TXT_RESET << endl;
 		}
+		chksum = lastChksum;
 		cout << WAVTIME(pos) << "Extracted data: " << std::dec << (buff.size()) << " bytes" << endl;
 		if (chksum==lastByte) {
 			cout << WAVTIME(pos) << MSG_SUCCESS << ": CHECKSUM OK [0x"<< std::hex << chksum << "]" << endl;
