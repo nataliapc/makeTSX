@@ -173,9 +173,13 @@ DWORD MSX4B_Ripper::checkPilot(DWORD posIni)
 	while (!eof(posIni)) {
 		pulseLen = pulseSum / pulses;
 		this->bauds = (DWORD)((float)WAVSampleRate / 4.f / pulseLen);
-		if (states[posIni] > THRESHOLD_SILENCE) break;
+		if (states[posIni] > THRESHOLD_SILENCE) {
+			break;
+		}
 		if (pulses>20 && checkBitN(posIni, this->leadingValue) && 
-			(!predictiveMode || predictiveBitsForward(posIni+startBitPulses, -1, 0, false))) break;
+			(!predictiveMode || predictiveBitsForward(posIni+startBitPulses, -1, 0, false))) {
+				break;
+		}
 		pulseSum += states[posIni++];
 		pulses++;
 	}

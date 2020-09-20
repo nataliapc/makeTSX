@@ -10,7 +10,7 @@ using namespace WAV_Class;
 
 namespace Rippers {
 
-	#define WINDOW1ST				0.25f
+	#define WINDOW1ST				0.22f
 	#define WINDOW					0.16f
 
 	#define MSX_PULSE(bauds)		((float)Z80HZ/(bauds*4))						// T-states for a pulse at 'bauds' (1200:~729.16667f 2400:364,58333)
