@@ -28,7 +28,7 @@ namespace Rippers {
 	/**
 	 * @class MSX4B_Ripper
 	 * @author NataliaPC
-	 * @date 10/03/17
+	 * @date 10/03/2017
 	 * @file MSX4B_Ripper.h
 	 * 
 	 * Class to detect Kansas City Standard Blocks used by MSX Computers
@@ -40,14 +40,14 @@ namespace Rippers {
 	 *  Large 2400 bauds ... 31744 cycles (63488 pulses) ~ 6.3 sec
 	 * 
 	 * Bits encoded at 1200 bauds:
-	 *  0 ________""""""""  1 cycles at 1200Hz
-	 *  1 ____""""____""""  2 cycles at 2400Hz
+	 *  0 ________''''''''  1 cycles at 1200Hz
+	 *  1 ____''''____''''  2 cycles at 2400Hz
 	 * 
 	 * Bits encoded at 2400 bauds:
-	 *  0 ____""""  1 cycles at 2400Hz
-	 *  1 __""__""  2 cycles at 4800Hz
+	 *  0 ____''''  1 cycles at 2400Hz
+	 *  1 __''__''  2 cycles at 4800Hz
 	 * 
-	 * Each Byte is encoded with 11 bits with 1 starter bit(0) and 2 stop bits(1):
+	 * Each Byte is LsB encoded with 11 bits: 1 start bit(0) and 2 stop bits(1):
 	 *  0 b0 b1 b2 b3 b4 b5 b6 b7 1 1
 	 */
 	class MSX4B_Ripper : public BlockRipper

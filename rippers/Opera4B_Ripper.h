@@ -14,7 +14,7 @@ namespace Rippers {
 	/**
 	 * @class Opera4B_Ripper
 	 * @author NataliaPC
-	 * @date 02/09/17
+	 * @date 02/09/2017
 	 * @file Opera4B_Ripper.h
 	 * 
 	 * Class to detect Kansas City Standard Blocks used by Opera Soft protection 

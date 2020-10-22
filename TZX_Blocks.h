@@ -8,6 +8,8 @@
 using namespace std;
 using namespace Utility;
 
+// TZX general defines
+#define Z80HZ					((uint32_t)3500000)		// ZX Standard 3.5 Mhz
 
 // TZX/TSX BLOCKS
 #define B10_STD_BLOCK       0x10

@@ -17,8 +17,6 @@ namespace WAV_Class {
 	// ============================================================================================
 	// Class BlockRipper
 
-	#define Z80HZ					((uint32_t)3500000)		// ZX Standard 3.5 Mhz
-
 	#define WAVSampleRate			(header->nSamplesPerSec)
 	#define bytes2tstates(bytes)	((float)bytes*Z80HZ/WAVSampleRate)
 	#define bytes2milis(bytes)		((float)bytes*1000/WAVSampleRate)

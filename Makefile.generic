@@ -22,6 +22,7 @@ _DEPS = makeTSX.h TZX.h TZX_Blocks.h WAV.h \
 		rippers/MSX4B_Ripper.h \
 		rippers/Opera4B_Ripper.h \
 		rippers/B10_Standard_Ripper.h \
+		rippers/B11_Custom_Ripper.h \
 		rippers/B12_PureTone_Ripper.h \
 		rippers/B13_PulseSequence_Ripper.h \
 		rippers/B15_DirectRecording_Ripper.h \
@@ -34,6 +35,7 @@ _OBJ =	makeTSX.o TZX.o TZX_Blocks.o WAV.o \
 		MSX4B_Ripper.o \
 		Opera4B_Ripper.o \
 		B10_Standard_Ripper.o \
+		B11_Custom_Ripper.o \
 		B12_PureTone_Ripper.o \
 		B13_PulseSequence_Ripper.o \
 		B15_DirectRecording_Ripper.o \

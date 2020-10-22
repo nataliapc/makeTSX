@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string>
 #include <cstring>
+#include <stdint.h>
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
@@ -14,6 +15,7 @@
 #include "WAV.h"
 #include "BlockRipper.h"
 #include "rippers/B10_Standard_Ripper.h"
+#include "rippers/B11_Custom_Ripper.h"
 #include "rippers/B12_PureTone_Ripper.h"
 #include "rippers/B13_PulseSequence_Ripper.h"
 #include "rippers/B15_DirectRecording_Ripper.h"
@@ -37,6 +39,7 @@ const char* END_TAG    = "<<-------------------- ";
 string tsxfile;
 string wavfile;
 bool tsxmode = false, wavmode = false;
+bool onlyBlock11 = false;
 bool onlyBlock13 = false;
 bool onlyBlock15 = false;
 bool tsxinfo = false;
@@ -47,14 +50,22 @@ bool wavenveloppe = true;
 bool outnormalize = false;
 bool outenveloppe = false;
 bool operadetect = false;
+bool nopilot = false;
+UNITS lengthUnits = UNIT_TSTATES;
 // #4B modifiers (defaults)
-BYTE p0=2;
-BYTE p1=4;
-BYTE lv=0;
-BYTE tv=1;
-BYTE lb=1;
-BYTE tb=2;
-BYTE sbf=0;
+BYTE p0 = 2;
+BYTE p1 = 4;
+BYTE lv = 0;
+BYTE tv = 1;
+BYTE lb = 1;
+BYTE tb = 2;
+BYTE sbf = 0;
+// #11 modifiers (defaults)
+WORD pl = 2168;
+WORD sl1 = 667;
+WORD sl2 = 735;
+WORD zl = 855;
+WORD ol = 1710;
 
 /**
  * @brief Main entry point
@@ -82,6 +93,10 @@ int main(int argc, const char* argv[])
 			showUsage1();
 			exit(1);
 		} else
+		if (!strcasecmp(argv[i], "-h2")) {
+			showUsage2();
+			exit(1);
+		} else
 		if (!strcasecmp(argv[i], "-i")) {
 			tsxmode = true;
 			tsxinfo = true;
@@ -98,13 +113,21 @@ int main(int argc, const char* argv[])
 			wavmode = true;
 			BlockRipper::setVerboseMode(true);
 		} else
+		if (!strcasecmp(argv[i], "-b11")) {
+			wavmode = true;
+			onlyBlock11 = true;
+			onlyBlock13 = false;
+			onlyBlock15 = false;
+		} else
 		if (!strcasecmp(argv[i], "-b13")) {
 			wavmode = true;
+			onlyBlock11 = false;
 			onlyBlock13 = true;
 			onlyBlock15 = false;
 		} else
 		if (!strcasecmp(argv[i], "-b15")) {
 			wavmode = true;
+			onlyBlock11 = false;
 			onlyBlock13 = false;
 			onlyBlock15 = true;
 		} else
@@ -112,8 +135,64 @@ int main(int argc, const char* argv[])
 			operadetect = true;
 		} else
 		if (!strcasecmp(argv[i], "-nopilot")) {
-			cout << TXT_ERROR << " Parameter '-nopilot' not implemented yet!" << endl << endl;
-			exit(1);
+			nopilot = true;
+		} else
+		if (!strcasecmp(argv[i], "-pl")) {
+			if (!onlyBlock11) {
+				cout << TXT_ERROR << " Parameter '-pl' must be used only with '-b11'" << endl << endl;
+				exit(1);
+			}
+			if (i+1<argc) pl = atoi(argv[i+1]);
+			i++;
+			cout << "Pilot pulse length: " << (int)pl << endl;
+		} else
+		if (!strcasecmp(argv[i], "-sl1")) {
+			if (!onlyBlock11) {
+				cout << TXT_ERROR << " Parameter '-sl1' must be used only with '-b11'" << endl << endl;
+				exit(1);
+			}
+			if (i+1<argc) sl1 = atoi(argv[i+1]);
+			i++;
+			cout << "Sync1 pulse length: " << (int)sl1 << endl;
+		} else
+		if (!strcasecmp(argv[i], "-sl2")) {
+			if (!onlyBlock11) {
+				cout << TXT_ERROR << " Parameter '-sl2' must be used only with '-b11'" << endl << endl;
+				exit(1);
+			}
+			if (i+1<argc) sl2 = atoi(argv[i+1]);
+			i++;
+			cout << "Sync2 pulse length: " << (int)sl2 << endl;
+		} else
+		if (!strcasecmp(argv[i], "-zl")) {
+			if (!onlyBlock11) {
+				cout << TXT_ERROR << " Parameter '-zl' must be used only with '-b11'" << endl << endl;
+				exit(1);
+			}
+			if (i+1<argc) zl = atoi(argv[i+1]);
+			i++;
+			cout << "Zero pulse length: " << (int)zl << endl;
+		} else
+		if (!strcasecmp(argv[i], "-ol")) {
+			if (!onlyBlock11) {
+				cout << TXT_ERROR << " Parameter '-ol' must be used only with '-b11'" << endl << endl;
+				exit(1);
+			}
+			if (i+1<argc) ol = atoi(argv[i+1]);
+			i++;
+			cout << "One pulse length: " << (int)ol << endl;
+		} else
+		if (!strcasecmp(argv[i], "-tst")) {
+			lengthUnits = UNIT_TSTATES;
+			cout << "Input pulse lengths in t-states." << endl;
+		} else
+		if (!strcasecmp(argv[i], "-smp")) {
+			lengthUnits = UNIT_SAMPLES;
+			cout << "Input pulse lengths in WAV samples." << endl;
+		} else
+		if (!strcasecmp(argv[i], "-hz")) {
+			lengthUnits = UNIT_HZ;
+			cout << "Input pulse lengths in Hz." << endl;
 		} else
 		if (!strcasecmp(argv[i], "-p0")) {
 			wavmode = true;
@@ -199,7 +278,7 @@ int main(int argc, const char* argv[])
 				exit(1);
 			}
 			i++;
-			cout << "KCS bits order: " << (sbf ? "MsB" : "LsB") << endl;
+			cout << "Bits order: " << (sbf ? "MsB" : "LsB") << endl;
 		} else
 		if (!strcasecmp(argv[i], "-dn")) {
 			wavmode = true;
@@ -299,16 +378,22 @@ void showUsage() {
 	cout << TXT_GREEN "Usage:" TXT_RESET << endl
 		 << "       makeTSX [switchesWAV] -wav <WAV_IN_FILE> -tsx <TSX_OUT_FILE>" << endl
 		 << "       makeTSX [switchesTSX] -tsx <TSX_IN_FILE>" << endl
+		 << endl
 		 << TXT_GREEN "SwitchesWAV:" TXT_RESET << endl
 		 << "     -h       Show this page." << endl
 		 << "     -h1      Show a page with KCS/MSX usage examples." << endl
+		 << "     -h2      Show a page with Block#11 usage examples." << endl
 		 << "     -v       Verbose mode." << endl
 		 << "     -di      Disable interactive mode." << endl
 		 << "     -dp      Disable predictive mode." << endl
 		 << "     -dn      Disable normalize audio." << endl
 		 << "     -de      Disable enveloppe filter correction." << endl
-		 << "   " TXT_GREEN "Block#4B (KCS) modifiers" TXT_RESET << endl
+		 << "   " TXT_GREEN "General modifiers" TXT_RESET << endl
+		 << "     -hz      Pulse lengths in Hz." << endl
+		 << "     -tst     Pulse lengths in t-states." << endl
+		 << "     -smp     Pulse lengths in WAV samples." << endl
 		 << "     -nopilot Create blocks without pilot pulses." << endl
+		 << "   " TXT_GREEN "Block#4B modifiers (KCS " TXT_B_WHITE "see -h1" TXT_GREEN ")" TXT_RESET << endl
 		 << "     -p0 n    Pulses in a ZERO bit {1-16 default:2}" << endl
 		 << "     -p1 n    Pulses in a ONE bit {1-16 default:4}" << endl
 		 << "     -lv n    Leading bits value {0/1 default:0}" << endl
@@ -316,13 +401,21 @@ void showUsage() {
 		 << "     -lb n    Check for 'n' leading bits {0-3 default:1}" << endl
 		 << "     -tb n    Check for 'n' trailing bits {0-3 default:2}" << endl
 		 << "     -sbf n   Significant bits first {0:Lsb 1:Msb default:0}" << endl
+		 << "   " TXT_GREEN "Block#11 modifiers (" TXT_B_WHITE "see -b11" TXT_GREEN ")" TXT_RESET << endl
+		 << "     -pl n    Pilot pulse length {default: 2168}" << endl
+		 << "     -sl1 n   Sync first pulse length {0:no sync1 default:667}" << endl
+		 << "     -sl2 n   Sync first pulse length {0:no sync2 default:735}" << endl
+		 << "     -zl n    Zero bit pulse length {default:855}" << endl
+		 << "     -ol n    One bit pulse length {default:1710}" << endl
 		 << "   " TXT_GREEN "Other blocks" TXT_RESET << endl
-		 << "     -b13     Use only blocks #13(Pulse Sequence) & #20(Pause)." << endl
-		 << "     -b15     Use only blocks #15(Direct Recording) & #20(Pause)." << endl
-		 << "     -opera   Enable 'OperaSoft' block detection." << endl
-		 << "   " << TXT_GREEN << "Export WAVs options" << TXT_RESET << endl
+		 << "     -b11     Get only blocks #11 (" TXT_B_WHITE "see -h2" TXT_RESET ") & #20(Pause)." << endl
+		 << "     -b13     Get only blocks #13 (Pulse Sequence) & #20(Pause)." << endl
+		 << "     -b15     Get only blocks #15 (Direct Recording) & #20(Pause)." << endl
+		 << "     -opera   Get only 'MSX OperaSoft' block detection." << endl
+		 << "   " TXT_GREEN "Export WAVs options" TXT_RESET << endl
 		 << "     -outn    Save the file 'wav_normalized.wav'." << endl
 		 << "     -oute    Save the file 'wav_envelopped.wav'." << endl
+		 << endl
 		 << TXT_GREEN "SwitchesTSX:" TXT_RESET << endl
 		 << "     -i       Show TSX/TZX verbose blocks info." << endl
 		 << "     -c       Dump TSX/TZX data blocks in hex-char format." << endl
@@ -334,7 +427,7 @@ void showUsage() {
  * @brief
  */
 void showUsage1() {
-	cout << TXT_B_WHITE "Usage examples:" << endl
+	cout << TXT_B_WHITE "Usage examples (experimental):" << endl
 		 << endl
 		 << TXT_GREEN "Extract " TXT_B_WHITE "MSX" TXT_GREEN " blocks:" TXT_RESET << endl
 		 << "    makeTSX -wav in.wav -tsx out.tsx" << endl
@@ -349,6 +442,10 @@ void showUsage1() {
 		 << TXT_GREEN "Extract " TXT_B_WHITE "SVI-318/328" TXT_GREEN " blocks:" TXT_RESET << endl
 		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 2 -lv 0 -lb 0 -tv 0 -tb 1 -sbf 1 -nopilot" << endl
 		 << endl
+		 << TXT_GREEN "Extract " TXT_B_WHITE "Atari 400/800" TXT_GREEN " blocks:" TXT_RESET << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 1 -p1 1 -lv 0 -lb 1 -tv 1 -tb 1 -sbf 0 -nopilot" << endl
+		 // 1:5327Hz 0:3995Hz -> 1:657 tstates 0:876 tstates
+		 << endl
 		 << TXT_GREEN "Extract " TXT_B_WHITE "Dragon/CoCo" TXT_GREEN " blocks:" TXT_RESET << endl
 		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 2 -lv 0 -lb 0 -tv 0 -tb 0 -nopilot" << endl
 		 << endl
@@ -359,6 +456,45 @@ void showUsage1() {
 		 << "    makeTSX -wav in.wav -tsx out.tsx -p0 2 -p1 2 -lv 0 -lb 1 -tv 1 -tb 1" << endl
 		 << endl
 	;
+}
+
+/**
+ * @brief
+ */
+void showUsage2() {
+	cout << TXT_B_WHITE "Usage examples (-b11):" << endl
+		 << endl
+		 << TXT_GREEN "Extract " TXT_B_WHITE "Enterprise 64/128" TXT_GREEN " blocks (fast/slow):" TXT_RESET << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -b11 -tst -pl 742 -sl1 1280 -sl2 1280 -ol 602 -zl 882" << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -b11 -tst -pl 1750 -sl1 2800 -sl2 2800 -ol 1400 -zl 1982" << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -b11 -hz -pl 2358 -sl1 1367 -sl2 1367 -ol 2907 -zl 1984" << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -b11 -hz -pl 1000 -sl1 625 -sl2 625 -ol 1250 -zl 833" << endl
+		 // http://cpctech.cpc-live.com/docs/cdt.html
+		 // Pilot:    2358Hz / 1000Hz
+		 // Sync bit: 1437Hz /  625Hz
+		 // One bit:  2907Hz / 1250Hz
+		 // Zero bit: 1984Hz /  833Hz
+		 // LSb first
+		 << endl
+		 << TXT_GREEN "Extract " TXT_B_WHITE "Jupiter ACE" TXT_GREEN " blocks:" TXT_RESET << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -b11 -tst -pl 2011 -sl1 600 -sl2 790 -ol 1591 -zl 801" << endl
+		 // http://cpctech.cpc-live.com/docs/cdt.html
+		 // Pilot:    2011 t-states
+		 // Sync bit:  600 t-states
+		 // Sync bit:  790 t-states
+		 // One bit:  1591 t-states
+		 // Zero bit:  801 t-states
+		 // MSb first
+		 << endl
+		 << TXT_GREEN "Extract " TXT_B_WHITE "Unilode format" TXT_GREEN " blocks:" TXT_RESET << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -b11 -tst -nopilot -sl1 0 -sl2 0 -ol 980 -zl 490" << endl
+		 << "    makeTSX -wav in.wav -tsx out.tsx -b11 -hz -nopilot -sl1 0 -sl2 0 -ol 1785 -zl 3570" << endl
+		 // Pilot:    -
+		 // Sync bit: -
+		 // One bit:  1785Hz (980 t-states)
+		 // Zero bit: 3570Hz (490 t-states)
+		 // MSb first
+		 << endl;
 }
 
 /**
@@ -429,6 +565,26 @@ void doWavMode()
 	bool  msxload = false;
 	float currentTime;
 
+	//Translate lengths units
+	switch (lengthUnits) {
+		case UNIT_TSTATES:
+			break;
+		case UNIT_HZ:
+			if (pl!=0)  pl = (WORD)(Z80HZ/pl/2);
+			if (sl1!=0) sl1 = (WORD)(Z80HZ/sl1/2);
+			if (sl2!=0) sl2 = (WORD)(Z80HZ/sl2/2);
+			if (zl!=0)  zl = (WORD)(Z80HZ/zl/2);
+			if (ol!=0)  ol = (WORD)(Z80HZ/ol/2);
+			break;
+		case UNIT_SAMPLES:
+			pl = (WORD)(pl*Z80HZ/wav->header->nSamplesPerSec);
+			sl1 = (WORD)(sl1*Z80HZ/wav->header->nSamplesPerSec);
+			sl2 = (WORD)(sl2*Z80HZ/wav->header->nSamplesPerSec);
+			zl = (WORD)(zl*Z80HZ/wav->header->nSamplesPerSec);
+			ol = (WORD)(ol*Z80HZ/wav->header->nSamplesPerSec);
+			break;
+	}
+
 	//Check Input WAV file
 	if (!wav || !wav->getSize()) {
 		cout << TXT_ERROR << " Error loading WAV file..." << endl << endl;
@@ -473,6 +629,7 @@ void doWavMode()
 	//Ripppers
 	Block                      *last;
 	B10_Standard_Ripper        *std10 = new B10_Standard_Ripper(wav);
+	B11_Custom_Ripper          *cus11 = new B11_Custom_Ripper(wav, pl, sl1, sl2, zl, ol, nopilot);
 	B12_PureTone_Ripper        *ton12 = new B12_PureTone_Ripper(wav);
 	B13_PulseSequence_Ripper   *seq13 = new B13_PulseSequence_Ripper(wav);
 	B15_DirectRecording_Ripper *drc15 = new B15_DirectRecording_Ripper(wav);
@@ -508,6 +665,16 @@ void doWavMode()
 			if (!sil20->eof()) cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
 
 		} else
+		// =========================================================
+		// Block 11 forced
+		if (onlyBlock11 && cus11->detectBlock()) {
+
+			Block11 *b = (Block11*) cus11->getDetectedBlock();
+			cout << TXT_GREEN << END_TAG << "BLOCK #" << std::hex << (int)(b->getId()) << " CUSTOM BLOCK RIPPED" << TXT_RESET << endl;
+			tsx->addBlock(b);
+			if (!cus11->eof()) cout << TXT_GREEN << BEGIN_TAG << "START DETECTING BLOCK" << TXT_RESET << endl;
+
+	    } else
 		// =========================================================
 		// Block 13 forced
 		if (onlyBlock13 && seq13->detectBlock()) {

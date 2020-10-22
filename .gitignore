@@ -1,2 +1,6 @@
 .svn
 *~
+obj/
+wavs/
+compile_*
+makeTSX_*
