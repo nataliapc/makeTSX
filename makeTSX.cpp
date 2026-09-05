@@ -565,6 +565,22 @@ void doWavMode()
 	bool  msxload = false;
 	float currentTime;
 
+	//Check Input WAV file
+	if (!wav || !wav->getSize()) {
+		cout << TXT_ERROR << " Error loading WAV file..." << endl << endl;
+		exit(1);
+	}
+	cout << endl;
+	wav->showInfo();
+	if (wav->header->fmtSize<16 ||
+		wav->header->wFormatTag!=1 ||
+		wav->header->nChannels!=1 ||
+		(wav->header->wBitsPerSample!=8 && wav->header->wBitsPerSample!=16)) {
+		cout << endl << TXT_ERROR << " WAV file must be in PCM/Mono and 8/16bits mode..." << endl << endl;
+		exit(1);
+	}
+	cout << endl;
+
 	//Translate lengths units
 	switch (lengthUnits) {
 		case UNIT_TSTATES:
@@ -584,22 +600,6 @@ void doWavMode()
 			ol = (WORD)(ol*Z80HZ/wav->header->nSamplesPerSec);
 			break;
 	}
-
-	//Check Input WAV file
-	if (!wav || !wav->getSize()) {
-		cout << TXT_ERROR << " Error loading WAV file..." << endl << endl;
-		exit(1);
-	}
-	cout << endl;
-	wav->showInfo();
-	if (wav->header->fmtSize!=16 ||
-		wav->header->wFormatTag!=1 ||
-		wav->header->nChannels!=1 ||
-		(wav->header->wBitsPerSample!=8 && wav->header->wBitsPerSample!=16)) {
-		cout << endl << TXT_ERROR << " WAV file must be in PCM/Mono and 8/16bits mode..." << endl << endl;
-		exit(1);
-	}
-	cout << endl;
 
 	//Add 1st block with text info about this ripper
 	tsx->addBlock(new Block30(MAKETSX_TEXTBLOCK));
