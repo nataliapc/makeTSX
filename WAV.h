@@ -59,7 +59,7 @@ namespace WAV_Class
 		const char* MAGIC_FMTID  = "fmt ";
 		const char* MAGIC_DATAID = "data";
 
-		int8_t *data;
+		int8_t *data;					// Centered signed samples in [-128, 127]
 		size_t size;
 
 		bool phase = false;

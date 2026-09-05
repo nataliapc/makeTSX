@@ -3,6 +3,7 @@
 #include <fstream>
 #include <cstring>
 #include <stdexcept>
+#include <vector>
 
 
 #include "WAV.h"
@@ -201,13 +202,15 @@ bool WAV::loadFromFile(string filename)
 	ifs.seekg(dataPosition, std::ios::beg);
 	if (!ifs) return fail("Invalid WAV data position...");
 
-	// Preserve the existing unsigned intermediate sample representation used by the filters.
 	if (header->wBitsPerSample == 8) {
 		size = header->dataSize;
 		if (size > 0) {
 			data = new int8_t[size];
 			if (!ifs.read((char *)data, static_cast<std::streamsize>(size))) {
 				return fail("Unexpected end of WAV data...");
+			}
+			for (size_t i=0; i<size; i++) {
+				data[i] = static_cast<int8_t>(static_cast<uint8_t>(data[i]) - 0x80);
 			}
 		}
 	} else {
@@ -222,7 +225,7 @@ bool WAV::loadFromFile(string filename)
 			const int32_t value16 = (raw & 0x8000u)
 				? static_cast<int32_t>(raw) - 0x10000
 				: static_cast<int32_t>(raw);
-			data[i] = (value16/256 - 0x80) & 0xFF;
+			data[i] = static_cast<int8_t>(value16 / 256);
 		}
 	}
 
@@ -237,30 +240,26 @@ bool WAV::loadFromFile(string filename)
 
 bool WAV::saveToFile(string filename)
 {
-	if (phase) {
-		for (uint32_t i=0; i<size; i++) {
-			data[i] = -data[i];
-		}
-	}
-
 	std::ofstream ofs (filename, std::ofstream::out | std::ios::binary);
 	if (!ofs.is_open()) return false;
 
-	WORD bits = header->wBitsPerSample;
-	header->wBitsPerSample = 8;
+	Header outputHeader = *header;
+	outputHeader.wBitsPerSample = 8;
+	ofs.write((char*)&outputHeader, sizeof(Header));
 
-	ofs.write((char*)header, sizeof(Header));
-	ofs.write((char*)data, size);
-
-	header->wBitsPerSample = bits;
-
-	ofs.close();
-	return true;
+	std::vector<uint8_t> output(size);
+	for (size_t i=0; i<size; i++) {
+		const int16_t sample = phase ? -static_cast<int16_t>(data[i]) : data[i];
+		output[i] = static_cast<uint8_t>(sample + 0x80);
+	}
+	if (size > 0) {
+		ofs.write((char*)output.data(), static_cast<std::streamsize>(size));
+	}
+	return static_cast<bool>(ofs);
 }
 
 void WAV::normalize()
 {
-	BYTE* bdata = reinterpret_cast<BYTE*>(data);
 	DWORD  pos = 0;
 	DWORD  len = header->nSamplesPerSec * (0.25f / 1000);	//0.25 ms segments
 	int16_t min, max;
@@ -270,19 +269,19 @@ void WAV::normalize()
 		max = -128;
 		min = 127;
 		for (DWORD i=pos; i<pos+len && i<size; i++) {
-			v = (int16_t)bdata[i] - 0x80;
+			v = data[i];
 			if (v > max && v > 5) { max = v; }
 			if (v < min && v <-5) { min = v; }
 		}
 		for (DWORD i=pos; i<pos+len && i<size; i++) {
-			v = (int16_t)bdata[i] - 0x80;
+			v = data[i];
 			if (v > 0) {
 				v = v * 127 / max;
 			}
 			if (v < 0) {
 				v = v * -127 / min;
 			}
-			bdata[i] = (BYTE)(v + 0x80);
+			data[i] = static_cast<int8_t>(v);
 		}
 		pos += len;
 	}
@@ -291,10 +290,6 @@ void WAV::normalize()
 void WAV::envelopeCorrection()
 {
 	const int32_t deviation = 20;
-
-	for (DWORD i=0; i<size; i++) {
-		data[i] = (int16_t)(((uint16_t)data[i]&0xff)-0x80);
-	}
 
 	int32_t avg;
 	for (DWORD i=1; i<size-1; i++) {

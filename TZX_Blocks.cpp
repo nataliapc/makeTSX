@@ -1029,9 +1029,13 @@ Block4B::Block4B(istream &is)
 
 BYTE Block4B::getFileType()
 {
-	bytes->Seek(17);
+	const size_t tokenSize = 10;
+	const size_t dataOffset = getHeadSize();
+	if (bytes->getSize() < dataOffset + tokenSize) return MSX_UNKNOWN_ID;
+
+	bytes->Seek(dataOffset);
 	BYTE token = bytes->ReadUByte();
-	for (int i=0; i<9; i++) {
+	for (size_t i=1; i<tokenSize; i++) {
 		if (token != bytes->ReadUByte()) {
 			return MSX_UNKNOWN_ID;
 		}

@@ -13,6 +13,7 @@ using WAV_Class::WAV;
 namespace
 {
 	typedef std::vector<uint8_t> Bytes;
+	typedef std::vector<int16_t> Samples;
 	int failures = 0;
 	unsigned fixtureNumber = 0;
 
@@ -27,6 +28,11 @@ namespace
 		size_t sampleCount() const
 		{
 			return size;
+		}
+
+		void setPhase(bool enabled)
+		{
+			phase = enabled;
 		}
 	};
 
@@ -100,6 +106,15 @@ namespace
 		return format;
 	}
 
+	Bytes pcm8(const Samples &samples)
+	{
+		Bytes bytes;
+		for (size_t i = 0; i < samples.size(); i++) {
+			bytes.push_back(static_cast<uint8_t>(samples[i] + 0x80));
+		}
+		return bytes;
+	}
+
 	bool loadBytes(TestWAV &wav, const Bytes &bytes)
 	{
 		const std::string path = "obj/test_wav_fixture_" +
@@ -115,20 +130,46 @@ namespace
 		return loaded;
 	}
 
-	void checkSamples(const TestWAV &wav, const Bytes &expected, const std::string &name)
+	Samples sampleValues(const TestWAV &wav)
+	{
+		Samples samples;
+		for (size_t i = 0; i < wav.sampleCount(); i++) {
+			samples.push_back(wav.samples()[i]);
+		}
+		return samples;
+	}
+
+	void checkSamples(const TestWAV &wav, const Samples &expected, const std::string &name)
 	{
 		check(wav.sampleCount() == expected.size(), name + " sample count");
 		if (wav.sampleCount() != expected.size() || wav.samples() == NULL) return;
 		for (size_t i = 0; i < expected.size(); i++) {
-			if (static_cast<uint8_t>(wav.samples()[i]) != expected[i]) {
+			if (wav.samples()[i] != expected[i]) {
 				std::cerr << "FAIL: " << name << " sample " << i
-					<< " expected " << static_cast<unsigned>(expected[i])
-					<< " got " << static_cast<unsigned>(static_cast<uint8_t>(wav.samples()[i]))
+					<< " expected " << expected[i]
+					<< " got " << static_cast<int>(wav.samples()[i])
 					<< std::endl;
 				failures++;
 				return;
 			}
 		}
+	}
+
+	void checkSaveRoundTrip(TestWAV &wav, const Samples &expected,
+		const std::string &name)
+	{
+		const Samples before = sampleValues(wav);
+		const std::string path = "obj/test_wav_saved_" +
+			std::to_string(++fixtureNumber) + ".wav";
+		const bool saved = wav.saveToFile(path);
+		check(saved, name + " saves");
+		checkSamples(wav, before, name + " does not modify source samples");
+		if (saved) {
+			TestWAV reloaded;
+			check(reloaded.loadFromFile(path), name + " reloads");
+			checkSamples(reloaded, expected, name + " round trip");
+		}
+		std::remove(path.c_str());
 	}
 
 	Bytes standardWave(const Bytes &format, const Bytes &samples)
@@ -146,7 +187,7 @@ namespace
 		const Bytes samples8 = { 0x00, 0x7f, 0x80, 0xff };
 		check(loadBytes(wav8, standardWave(pcmFormat(8, 1, 1), samples8)),
 			"standard 8-bit WAV loads");
-		checkSamples(wav8, samples8, "standard 8-bit WAV");
+		checkSamples(wav8, Samples{ -128, -1, 0, 127 }, "standard 8-bit WAV");
 		check(wav8.header->fmtSize == 16, "standard fmt size");
 		check(wav8.header->nSamplesPerSec == 44100, "standard sample rate");
 
@@ -155,10 +196,14 @@ namespace
 		appendLE16(samples16, 0x0000);
 		appendLE16(samples16, 0x7fff);
 		appendLE16(samples16, 0xffff);
+		appendLE16(samples16, 0xff01);
+		appendLE16(samples16, 0xff00);
+		appendLE16(samples16, 0x8001);
 		TestWAV wav16;
 		check(loadBytes(wav16, standardWave(pcmFormat(16, 1, 2), samples16)),
 			"standard 16-bit WAV loads");
-		checkSamples(wav16, Bytes{ 0x00, 0x80, 0xff, 0x80 }, "standard 16-bit WAV");
+		checkSamples(wav16, Samples{ -128, 0, 127, 0, 0, -1, -127 },
+			"standard 16-bit WAV");
 	}
 
 	void testChunkVariants()
@@ -176,7 +221,7 @@ namespace
 		TestWAV extended;
 		check(loadBytes(extended, wave), "unknown odd chunks and extended fmt load");
 		check(extended.header->fmtSize == 18, "extended fmt size is retained");
-		checkSamples(extended, Bytes{ 0x12, 0x34 }, "extended WAV");
+		checkSamples(extended, Samples{ -110, -76 }, "extended WAV");
 
 		Bytes reordered = beginWave();
 		appendChunk(reordered, "data", Bytes{ 0x42 });
@@ -184,7 +229,55 @@ namespace
 		finishWave(reordered);
 		TestWAV dataFirst;
 		check(loadBytes(dataFirst, reordered), "data before fmt loads");
-		checkSamples(dataFirst, Bytes{ 0x42 }, "data-before-fmt WAV");
+		checkSamples(dataFirst, Samples{ -62 }, "data-before-fmt WAV");
+	}
+
+	void testSampleProcessing()
+	{
+		TestWAV normalized;
+		const Samples normalizeInput = { -64, -32, 0, 32, 64 };
+		check(loadBytes(normalized,
+			standardWave(pcmFormat(8, 1, 1), pcm8(normalizeInput))),
+			"normalize-only fixture loads");
+		normalized.normalize();
+		checkSamples(normalized, Samples{ -127, -63, 0, 63, 127 },
+			"normalize-only signed samples");
+
+		TestWAV envelopeOnly;
+		const Samples envelopeInput = { -100, -100, -100, 100, 100, 100 };
+		check(loadBytes(envelopeOnly,
+			standardWave(pcmFormat(8, 1, 1), pcm8(envelopeInput))),
+			"envelope-only fixture loads");
+		envelopeOnly.envelopeCorrection();
+		checkSamples(envelopeOnly, Samples{ -100, -100, 14, 87, 98, 100 },
+			"envelope-only signed samples");
+
+		TestWAV complete;
+		const Samples completeInput = { -64, -64, -64, 64, 64, 64 };
+		check(loadBytes(complete,
+			standardWave(pcmFormat(8, 1, 1), pcm8(completeInput))),
+			"complete pipeline fixture loads");
+		complete.normalize();
+		checkSaveRoundTrip(complete,
+			Samples{ -127, -127, -127, 127, 127, 127 }, "normalized output");
+		complete.envelopeCorrection();
+		checkSamples(complete, Samples{ -127, -127, 18, 111, 124, 127 },
+			"complete signed pipeline");
+		checkSaveRoundTrip(complete,
+			Samples{ -127, -127, 18, 111, 124, 127 }, "enveloped output");
+	}
+
+	void testPhaseSaveIsNonDestructive()
+	{
+		TestWAV wav;
+		wav.setPhase(true);
+		const Samples input = { -64, 0, 64, 32 };
+		check(loadBytes(wav, standardWave(pcmFormat(8, 1, 1), pcm8(input))),
+			"phase fixture loads");
+		checkSamples(wav, Samples{ 64, 0, -64, -32 }, "phase-adjusted samples");
+		checkSaveRoundTrip(wav, input, "phase output");
+		checkSamples(wav, Samples{ 64, 0, -64, -32 },
+			"phase output preserves adjusted samples");
 	}
 
 	void testMalformedFiles()
@@ -259,6 +352,8 @@ int main()
 {
 	testStandardSamples();
 	testChunkVariants();
+	testSampleProcessing();
+	testPhaseSaveIsNonDestructive();
 	testMalformedFiles();
 
 	if (failures != 0) {

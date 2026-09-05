@@ -13,6 +13,7 @@ using TZX_Blocks::Block11;
 using TZX_Blocks::Block14;
 using TZX_Blocks::Block15;
 using TZX_Blocks::Block40;
+using TZX_Blocks::Block4B;
 using Utility::ByteBuffer;
 using Utility::ORDER_BIG_ENDIAN;
 
@@ -210,6 +211,36 @@ namespace
 		}, "Block40 rejects truncated data");
 	}
 
+	void testBlock4BFileType()
+	{
+		char shortData[] = { static_cast<char>(0xd0) };
+		Block4B shortBlock(0, 1, 1, 2, 1, 0x24, 0x54, shortData, sizeof(shortData));
+		check(shortBlock.getFileType() == 0xff,
+			"Block4B treats a short file signature as unknown");
+		check(shortBlock.getFileTypeDescription() == "MSX DATA Block",
+			"Block4B describes short data without reading past its buffer");
+
+		std::istringstream shortInput(bodyWithSentinel(shortBlock));
+		Block4B parsedShortBlock(shortInput);
+		check(parsedShortBlock.getFileType() == 0xff,
+			"parsed Block4B treats a short file signature as unknown");
+		checkSentinel(shortInput, "short Block4B");
+
+		std::vector<char> incompleteHeader(9, static_cast<char>(0xd0));
+		Block4B incompleteBlock(0, 1, 1, 2, 1, 0x24, 0x54,
+			incompleteHeader.data(), incompleteHeader.size());
+		check(incompleteBlock.getFileType() == 0xff,
+			"Block4B rejects a nine-byte file signature");
+
+		std::vector<char> binaryHeader(10, static_cast<char>(0xd0));
+		Block4B binaryBlock(0, 1, 1, 2, 1, 0x24, 0x54,
+			binaryHeader.data(), binaryHeader.size());
+		check(binaryBlock.getFileType() == 0xd0,
+			"Block4B recognizes a complete binary header signature");
+		check(binaryBlock.getFileTypeLoad() == "BLOAD\"CAS:\",R",
+			"Block4B retains the binary header load command");
+	}
+
 	void testOversizedPayloads()
 	{
 		std::vector<char> data(static_cast<size_t>(WORD24_MAX_VALUE) + 1, 0);
@@ -232,6 +263,7 @@ int main()
 	testBlock14();
 	testBlock15();
 	testBlock40();
+	testBlock4BFileType();
 	testOversizedPayloads();
 
 	if (failures != 0) {
