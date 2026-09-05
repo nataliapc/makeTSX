@@ -9,7 +9,7 @@
 	0.8.4b	05.06.2020
 	0.8.5b	18.10.2020
 */
-#define MAKETSX_VER			"0.8.5b"
+#define MAKETSX_VER			"0.8.6b"
 #define RELEASE_DATE		"2020.10.18"
 #define MAKETSX_TEXTBLOCK	"Tape ripped by MAKETSX v" MAKETSX_VER " @ishwin74"
 

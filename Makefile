@@ -8,7 +8,7 @@ TEST_BIN = obj/test_tzx_blocks
 TEST_BIN_WIN32 = obj/test_tzx_blocks_win32.exe
 TEST_BIN_WIN64 = obj/test_tzx_blocks_win64.exe
 TEST_SOURCES = tests/test_tzx_blocks.cpp ByteBuffer.cpp TZX_Blocks.cpp
-TEST_FLAGS = -std=gnu++11 -Wall -Wextra -I./includes -I.
+TEST_FLAGS = -std=gnu++11 -Wall -Wextra -I./includes -I. -Wignored-qualifiers
 
 all: compileAll
 

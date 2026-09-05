@@ -30,20 +30,20 @@ WAV::WAV(string filename)
 	loadFromFile(filename);
 }
 
-WAV::WAV(const WAV& other)
+WAV::WAV(const WAV& other) : WAV()
 {
 	std::memcpy((void *)header, (const void*)other.header, sizeof(Header));
-
 	size = other.size;
-
-	data = new int8_t[other.size];
-	if (data==NULL) throw std::runtime_error("Out of memory allocation WAV data...");
-	std::memcpy((void *)data, (const void*)other.data, other.size);
+	phase = other.phase;
+	if (size > 0) {
+		data = new int8_t[size];
+		std::memcpy((void *)data, (const void*)other.data, size);
+	}
 }
 
 WAV::~WAV()
 {
-	if (data!=NULL) delete data;
+	if (data!=NULL) delete[] data;
 	delete header;
 }
 
@@ -90,7 +90,7 @@ void WAV::showInfo()
 
 void WAV::clear()
 {
-	if (data!=NULL) delete data;
+	if (data!=NULL) delete[] data;
 	data = NULL;
 	std::fill_n((char*)header, sizeof(Header), 0);
 }
