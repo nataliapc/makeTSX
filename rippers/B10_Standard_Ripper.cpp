@@ -2,6 +2,7 @@
 #include <cmath>
 #include <vector>
 #include <cstring>
+#include <limits>
 
 #include "B10_Standard_Ripper.h"
 
@@ -55,17 +56,37 @@ bool B10_Standard_Ripper::detectSilence(DWORD pos)
 bool B10_Standard_Ripper::detectBlock()
 {
 	block = NULL;
-	DWORD posIni = pos;
+	if (pos >= states.size()) return false;
+	size_t posIni = pos;
 	WORD  pausems = 0;
 
 	//Detect block#10
 
 	//Search Pilot
 	DWORD pilots = checkPilot(posIni);
-	if (pilots && !eof(pos+pilots)) {
+	if (pilots && pilots < states.size()-pos) {
 
-		cout << WAVTIME(posIni) << TXT_B_GREEN << "Detected #10 Standard Speed Pilot tone (" << std::dec << pilots << " pulses|speed:x" << modif << ")" << NEXTPULSES4(posIni) << TXT_RESET << endl;
+		cout << WAVTIME(posIni) << TXT_B_GREEN << "Detected #10 Standard Speed Pilot tone (" << std::dec << pilots << " pulses|speed:x" << modif << ")";
+		if (states.size()-posIni >= 4) cout << NEXTPULSES4(posIni);
+		cout << TXT_RESET << endl;
 		posIni += pilots;
+
+		// Only a unique complete SYNC pair can move the pilot boundary.
+		auto matchesSync = [&](size_t candidate) {
+			return candidate < states.size() && states.size()-candidate >= 2 &&
+				ABS(states[candidate], SYNC1_PULSE) <= SYNC1_PULSE*0.20f &&
+				ABS(states[candidate+1], SYNC2_PULSE) <= SYNC2_PULSE*0.20f;
+		};
+		if (!matchesSync(posIni)) {
+			bool earlier = pilots > 1 && matchesSync(posIni-1);
+			bool later = pilots < std::numeric_limits<DWORD>::max() && matchesSync(posIni+1);
+			if (earlier != later) {
+				if (earlier) { --posIni; --pilots; }
+				else { ++posIni; ++pilots; }
+				if (verboseMode) cout << WAVTIME(posIni) << "Adjusted pilot/SYNC boundary by " << (earlier ? -1 : 1) << " pulse" << endl;
+			}
+		}
+		if (posIni >= states.size() || states.size()-posIni < 2) return false;
 
 		//Check Sync#1
 		if (!eof(posIni) && ABS(states[posIni], SYNC1_PULSE) > SYNC1_PULSE*0.20f) {
@@ -74,7 +95,7 @@ bool B10_Standard_Ripper::detectBlock()
 			float customTolerance = (pilots==3223 || pilots==8063) ? 0.30f : 0.15f;
 
 			//If SYNC1 fails try to check if SYNC1+SYNC2 is timed correctly
-			if (ABS(states[posIni]+states[posIni+1], SYNC1_PULSE+SYNC2_PULSE) > (SYNC1_PULSE+SYNC2_PULSE)*customTolerance) {
+			if (ABS(static_cast<uint64_t>(states[posIni])+states[posIni+1], SYNC1_PULSE+SYNC2_PULSE) > (SYNC1_PULSE+SYNC2_PULSE)*customTolerance) {
 				bool ask = false;
 				if (interactiveMode) {
 					cout << WAVTIME(posIni) << MSG_WARNING << ": Bad SYNC#1 Pulse " << NEXTPULSES2(posIni) << endl;
@@ -96,7 +117,7 @@ bool B10_Standard_Ripper::detectBlock()
 
 			//Check Sync#2
 			if (!eof(posIni) && ABS(states[posIni], SYNC2_PULSE) > SYNC2_PULSE*0.20f) {
-				cout << WAVTIME(posIni) << MSG_WARNING << ": Bad SYNC#2 Pulse: Assuming is OK and continue" << NEXTPULSES2(posIni) << endl;
+				cout << WAVTIME(posIni) << MSG_WARNING << ": Bad SYNC#2 Pulse: Assuming is OK and continue" << NEXTPULSES(posIni) << endl;
 			}
 
 			if (verboseMode) cout << WAVTIME(posIni) << "  SYNC#2 PULSE OK" << NEXTPULSES(posIni) << endl;
@@ -162,6 +183,7 @@ bool B10_Standard_Ripper::detectBlock()
 
 DWORD B10_Standard_Ripper::checkPilot(DWORD posIni)
 {
+	if (posIni >= states.size() || states.size()-posIni < 2) return 0;
 	float pulseSum = states[posIni] + states[posIni+1];
 	float pulses = 2.f;
 	float pulseLen = 0.f;
