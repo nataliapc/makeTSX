@@ -110,6 +110,7 @@ namespace Utility
 		ByteEndianness endian;
 		long unsigned int pointer;
 
+		bool HasRemaining(size_t) const;
 		template <class T> T ReadAny();
 		template <class T> bool WriteAny(T);
 	};

@@ -3,6 +3,8 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <memory>
+#include <stdexcept>
 
 #include "TZX.h"
 #include "TZX_Blocks.h"
@@ -17,6 +19,9 @@ using namespace Utility;
 // Class Block
 
 Block::Block()
+	: bytes(NULL)
+	, id(0)
+	, headSize(0)
 {
 }
 
@@ -164,7 +169,9 @@ void Block::put(char *data, size_t size)
 
 void Block::put(istream &is, size_t size)
 {
-	bytes->WriteRawData(is, size);
+	if (!bytes->WriteRawData(is, size)) {
+		throw std::length_error("Block buffer is too small");
+	}
 }
 
 void Block::put(ByteBuffer *buff) {
@@ -207,14 +214,13 @@ Block10::Block10(WORD pause, char *data, size_t size)
 
 Block10::Block10(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, 4);
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, 4));
 	aux->WriteRawData(is, 4);
 	aux->Seek(2);
 	int len = aux->ReadUInt16() * sizeof(BYTE);
 
 	init(B10_STD_BLOCK, 0x05, NULL, 4 + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -273,6 +279,9 @@ string Block10::toString()
 
 Block11::Block11(WORD pilotlen, WORD synclen1, WORD synclen2, WORD bit0len, WORD bit1len, WORD pilotnum, BYTE rbits, WORD pause, char *data, size_t size)
 {
+	if (size > WORD24_MAX_VALUE) {
+		throw std::length_error("Block #11 data exceeds its 24-bit length field");
+	}
 	init(B11_TURBO_BLOCK, 0x13, NULL, 18 + size*sizeof(BYTE));
 	putWord(pilotlen);
 	putWord(synclen1);
@@ -288,14 +297,13 @@ Block11::Block11(WORD pilotlen, WORD synclen1, WORD synclen2, WORD bit0len, WORD
 
 Block11::Block11(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, 18);
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, 18));
 	aux->WriteRawData(is, 18);
 	aux->Seek(15);
 	int len = aux->ReadUInt24() * sizeof(BYTE);
 
 	init(B11_TURBO_BLOCK, 0x13, NULL, 18 + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -375,6 +383,9 @@ string Block13::toString()
 
 Block14::Block14(WORD bit0len, WORD bit1len, BYTE rbits, WORD pause, char *data, size_t size)
 {
+	if (size > WORD24_MAX_VALUE) {
+		throw std::length_error("Block #14 data exceeds its 24-bit length field");
+	}
 	init(B14_PURE_DATA, 0x0B, NULL, 10 + size);
 	putWord(bit0len);
 	putWord(bit1len);
@@ -386,14 +397,13 @@ Block14::Block14(WORD bit0len, WORD bit1len, BYTE rbits, WORD pause, char *data,
 
 Block14::Block14(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, 10);
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, 10));
 	aux->WriteRawData(is, 10);
 	aux->Seek(7);
 	int len = aux->ReadUInt24();
 
 	init(B14_PURE_DATA, 0x0B, NULL, 10 + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -415,6 +425,9 @@ string Block14::toString()
 
 Block15::Block15(WORD numstates, WORD pause, BYTE rbits, char *data, size_t size)
 {
+	if (size > WORD24_MAX_VALUE) {
+		throw std::length_error("Block #15 data exceeds its 24-bit length field");
+	}
 	init(B15_DIRECT_REC, 0x09, NULL, 8 + size);
 	putWord(numstates);
 	putWord(pause);
@@ -425,14 +438,13 @@ Block15::Block15(WORD numstates, WORD pause, BYTE rbits, char *data, size_t size
 
 Block15::Block15(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, 10);
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, 8));
 	aux->WriteRawData(is, 8);
 	aux->Seek(5);
 	int len = aux->ReadUInt24();
 
 	init(B15_DIRECT_REC, 0x09, NULL, 8 + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -599,14 +611,13 @@ Block26::Block26(WORD num, WORD *calls)
 
 Block26::Block26(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, sizeof(WORD));
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, sizeof(WORD)));
 	aux->WriteRawData(is, sizeof(WORD));
 	aux->Seek(0);
 	int len = aux->ReadUInt16() * sizeof(WORD);
 
 	init(B26_CALL_SEQ, 0x03, NULL, 2 + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -663,14 +674,13 @@ Block28::Block28(BYTE num, WORD *offsets, string *texts)
 
 Block28::Block28(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, 2);
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, 2));
 	aux->WriteRawData(is, 2);
 	aux->Seek(0);
 	int len = aux->ReadUInt16();
 
 	init(B28_SEL_BLOCK, 0x04, NULL, 2 + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -773,14 +783,13 @@ Block31::Block31(BYTE time, string text)
 
 Block31::Block31(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, 2);
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, 2));
 	aux->WriteRawData(is, 2);
 	aux->Seek(1);
 	int len = aux->ReadUByte();
 
 	init(B31_MSG_BLOCK, 0x03, NULL, 2 + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -836,14 +845,13 @@ Block32::Block32(BYTE num, BYTE *ids, string *texts)
 
 Block32::Block32(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, 2);
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, 2));
 	aux->WriteRawData(is, 2);
 	aux->Seek(0);
 	int len = aux->ReadUInt16();
 
 	init(B32_ARCHIVE_INFO, 0x04, NULL, 2 + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -938,14 +946,13 @@ Block35::Block35(string label, string info)
 
 Block35::Block35(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, 16 + sizeof(DWORD));
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, 16 + sizeof(DWORD)));
 	aux->WriteRawData(is, 16 + sizeof(DWORD));
 	aux->Seek(16);
 	int len = aux->ReadUInt32();
 
 	init(B35_CUSTOM_INFO, 0x15, NULL, 16 + sizeof(DWORD) + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -1009,14 +1016,13 @@ Block4B::Block4B(WORD pause, WORD pilot, WORD pulses, WORD bit0len, WORD bit1len
 
 Block4B::Block4B(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, 4);
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, 4));
 	aux->WriteRawData(is, 4);
 	aux->Seek(0);
 	int len = aux->ReadUInt32();
 
 	init(B4B_MSX_KCS, 0x11, NULL, 4 + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -1142,14 +1148,13 @@ Block18::Block18()
 
 Block18::Block18(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, sizeof(DWORD));
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, sizeof(DWORD)));
 	aux->WriteRawData(is, sizeof(DWORD));
 	aux->Seek(0);
 	int len = aux->ReadUInt32();
 
 	init(B18_CSW_REC, 0x13, NULL, sizeof(DWORD) + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -1188,14 +1193,13 @@ Block19::Block19()
 
 Block19::Block19(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, sizeof(DWORD));
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, sizeof(DWORD)));
 	aux->WriteRawData(is, sizeof(DWORD));
 	aux->Seek(0);
 	int len = aux->ReadUInt32();
 
 	init(B19_GEN_DATA, 0x13, NULL, sizeof(DWORD) + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -1221,14 +1225,13 @@ Block16::Block16()
 
 Block16::Block16(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, sizeof(DWORD));
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, sizeof(DWORD)));
 	aux->WriteRawData(is, sizeof(DWORD));
 	aux->Seek(0);
 	int len = aux->ReadUInt32();
 
 	init(B16_C64ROM, 0x29, NULL, sizeof(DWORD) + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -1248,14 +1251,13 @@ Block17::Block17()
 
 Block17::Block17(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, sizeof(DWORD));
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, sizeof(DWORD)));
 	aux->WriteRawData(is, sizeof(DWORD));
 	aux->Seek(0);
 	int len = aux->ReadUInt32();
 
 	init(B17_C64TURBO, 0x17, NULL, sizeof(DWORD) + len);
-	put(aux);
-	delete aux;
+	put(aux.get());
 
 	put(is, len);
 }
@@ -1294,14 +1296,14 @@ Block40::Block40()
 
 Block40::Block40(istream &is)
 {
-	ByteBuffer *aux = new ByteBuffer(NULL, sizeof(WORD24) + 1);
-	aux->WriteRawData(is, sizeof(WORD24) + 1);
+	const size_t headerSize = WORD24_BYTES + sizeof(BYTE);
+	std::unique_ptr<ByteBuffer> aux(new ByteBuffer(NULL, headerSize));
+	aux->WriteRawData(is, headerSize);
 	aux->Seek(1);
 	int len = aux->ReadUInt24();
 
-	init(B40_SNAPSHOT, 0x05, NULL, sizeof(WORD24) + 1 + len);
-	put(aux);
-	delete aux;
+	init(B40_SNAPSHOT, 0x05, NULL, headerSize + len);
+	put(aux.get());
 
 	put(is, len);
 }
@@ -1310,4 +1312,3 @@ string Block40::toString()
 {
 	return Block::toString() + " - Snapshot block [DEPRECATED]";
 }
-
