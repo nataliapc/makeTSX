@@ -64,12 +64,12 @@ bool ByteBuffer::isEOF()
 	return pointer>=size;
 }
 
-long unsigned int ByteBuffer::Tell()
+size_t ByteBuffer::Tell()
 {
 	return pointer;
 }
 
-void ByteBuffer::Seek(long unsigned int target)
+void ByteBuffer::Seek(size_t target)
 {
 	if (target > size) {
 		throw std::out_of_range("ByteBuffer seek past end");

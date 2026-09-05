@@ -172,7 +172,7 @@ bool B11_Custom_Ripper::detectBlock()
 
 DWORD B11_Custom_Ripper::checkPilot(DWORD posIni)
 {
-	long pulseSum = states[posIni] + states[posIni+1];
+	uint64_t pulseSum = static_cast<uint64_t>(states[posIni]) + states[posIni+1];
 	float pulses = 2.f;
 	float pulseLen = 0.f;
 	modif = 1.0f;

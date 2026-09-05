@@ -99,8 +99,8 @@ namespace Utility
 
 		void StoreBytes(char*, char*, size_t);
 
-		long unsigned int Tell();
-		void Seek(long unsigned int);
+		size_t Tell();
+		void Seek(size_t);
 
 		ByteBuffer& operator=(const ByteBuffer &);
 
@@ -108,7 +108,7 @@ namespace Utility
 		char* data;
 		size_t size;
 		ByteEndianness endian;
-		long unsigned int pointer;
+		size_t pointer;
 
 		bool HasRemaining(size_t) const;
 		template <class T> T ReadAny();
